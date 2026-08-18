@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Provision — Contract obligations, actively monitored</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        ink:      '#14181F',
+        muted:    '#626B78',
+        faint:    '#8B94A0',
+        line:     '#E3E6EA',
+        surface:  '#F7F8FA',
+        accent:   '#2B4ACB',
+        accentdk: '#1E37A0',
+        marker:   '#FBE7A1',
+        markerdk: '#DEBB55',
+        ok:       '#0E7A5F',
+        warn:     '#B45309',
+        bad:      '#B42318'
+      },
+      fontFamily: {
+        sans: ['Instrument Sans', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+      },
+      maxWidth: { shell: '1120px' }
+    }
+  }
+}
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  body { -webkit-font-smoothing: antialiased; }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: #8B94A0; font-weight: 500;
+  }
+  .h-tight { letter-spacing: -0.022em; }
+  .clause-mark {
+    background: linear-gradient(180deg, transparent 8%, #FBE7A1 8%, #FBE7A1 92%, transparent 92%);
+    box-shadow: inset 0 -2px 0 #DEBB55;
+  }
+  .fade-line { height:1px; background:#E3E6EA; }
+  .msg-in { animation: rise .28s ease-out both; }
+  @keyframes rise { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
+  .dot-typing span {
+    display:inline-block;width:5px;height:5px;border-radius:99px;background:#8B94A0;margin-right:3px;
+    animation: blink 1.1s infinite;
+  }
+  .dot-typing span:nth-child(2){animation-delay:.18s} .dot-typing span:nth-child(3){animation-delay:.36s}
+  @keyframes blink { 0%,60%,100%{opacity:.25} 30%{opacity:1} }
+  :focus-visible { outline: 2px solid #2B4ACB; outline-offset: 2px; border-radius: 4px; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #DCE0E6; border-radius: 99px; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
+</style>
+</head>
+<body class="bg-white text-ink font-sans antialiased">
+
+<!-- ── PoC banner ─────────────────────────────────────────── -->
+<div class="bg-ink text-white text-[12.5px] py-2 px-5 text-center font-mono tracking-wide">
+  Proof of concept · every document, vendor and figure below is illustrative
+</div>
+
+<!-- ── Nav ────────────────────────────────────────────────── -->
+<header class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-line">
+  <div class="max-w-shell mx-auto px-5 h-16 flex items-center justify-between">
+    <a href="#top" class="flex items-center gap-2.5">
+      <span class="w-6 h-6 rounded-[5px] bg-ink flex items-center justify-center">
+        <span class="w-2.5 h-[2px] bg-marker block"></span>
+      </span>
+      <span class="font-semibold text-[15px] h-tight">Provision</span>
+    </a>
+    <nav class="hidden md:flex items-center gap-7 text-[14px] text-muted">
+      <a href="#problem" class="hover:text-ink transition-colors">Problem</a>
+      <a href="#how" class="hover:text-ink transition-colors">How it works</a>
+      <a href="#demo" class="hover:text-ink transition-colors">Demo</a>
+      <a href="#obligations" class="hover:text-ink transition-colors">Obligations</a>
+      <a href="#extraction" class="hover:text-ink transition-colors">Extraction</a>
+    </nav>
+    <a href="#demo" class="text-[14px] font-medium bg-ink text-white px-3.5 py-2 rounded-md hover:bg-black transition-colors">Try sample workspace</a>
+  </div>
+</header>
+
+<!-- ── 1. Hero ────────────────────────────────────────────── -->
+<section id="top" class="border-b border-line">
+  <div class="max-w-shell mx-auto px-5 py-16 md:py-24 grid lg:grid-cols-[1fr_1.05fr] gap-12 lg:gap-16 items-center">
+    <div>
+      <p class="eyebrow mb-5">Post-signature contract intelligence</p>
+      <h1 class="text-[38px] md:text-[52px] leading-[1.05] font-semibold h-tight">
+        Your contracts stop being read<br class="hidden md:block"> the day they're signed.
+      </h1>
+      <p class="mt-6 text-[17px] leading-[1.65] text-muted max-w-[46ch]">
+        Provision reads every agreement, MOU and purchase order you sign, pulls out the deadlines, penalties, compensation clauses and discount tiers inside them, and tells the right person before each one matters — with the exact clause attached.
+      </p>
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a href="#demo" class="bg-accent hover:bg-accentdk text-white text-[14.5px] font-medium px-5 py-2.5 rounded-md transition-colors">Watch demo</a>
+        <a href="#demo" class="border border-line hover:border-ink text-[14.5px] font-medium px-5 py-2.5 rounded-md transition-colors">Try sample workspace</a>
+      </div>
+      <p class="mt-7 text-[13px] text-faint">Built for operations and finance teams at 10–300 person companies.</p>
+    </div>
+
+    <!-- dashboard mockup -->
+    <div class="rounded-xl border border-line shadow-[0_1px_2px_rgba(20,24,31,.04),0_12px_32px_-12px_rgba(20,24,31,.12)] overflow-hidden bg-white">
+      <div class="flex items-center gap-1.5 px-4 h-9 border-b border-line bg-surface">
+        <span class="w-2.5 h-2.5 rounded-full bg-[#E1E4E9]"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-[#E1E4E9]"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-[#E1E4E9]"></span>
+        <span class="ml-3 font-mono text-[11px] text-faint">provision.app / obligations</span>
+      </div>
+      <div class="p-5">
+        <div class="flex items-baseline justify-between">
+          <h3 class="font-semibold text-[15px]">This week</h3>
+          <span class="font-mono text-[11px] text-faint">22 JUL 2026</span>
+        </div>
+        <div class="grid grid-cols-3 gap-3 mt-4">
+          <div class="border border-line rounded-lg p-3">
+            <p class="font-mono text-[10.5px] text-faint uppercase tracking-wider">Recoverable</p>
+            <p class="text-[22px] font-semibold mt-1 h-tight">$14,280</p>
+          </div>
+          <div class="border border-line rounded-lg p-3">
+            <p class="font-mono text-[10.5px] text-faint uppercase tracking-wider">Due 14 days</p>
+            <p class="text-[22px] font-semibold mt-1 h-tight">7</p>
+          </div>
+          <div class="border border-line rounded-lg p-3">
+            <p class="font-mono text-[10.5px] text-faint uppercase tracking-wider">Tracked</p>
+            <p class="text-[22px] font-semibold mt-1 h-tight">148</p>
+          </div>
+        </div>
+        <div class="mt-5 space-y-2">
+          <div class="flex items-center gap-3 border border-line rounded-lg px-3 py-2.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-bad shrink-0"></span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-medium truncate">Acme delivery overdue — 2% compensation eligible</p>
+              <p class="font-mono text-[11px] text-faint mt-0.5">Clause 7.3 · $1,684</p>
+            </div>
+            <span class="font-mono text-[11px] text-bad shrink-0">3d late</span>
+          </div>
+          <div class="flex items-center gap-3 border border-line rounded-lg px-3 py-2.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-warn shrink-0"></span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-medium truncate">Renewal notice — Vertex IT</p>
+              <p class="font-mono text-[11px] text-faint mt-0.5">Clause 12.1 · written notice required</p>
+            </div>
+            <span class="font-mono text-[11px] text-warn shrink-0">12d</span>
+          </div>
+          <div class="flex items-center gap-3 border border-line rounded-lg px-3 py-2.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-ok shrink-0"></span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-medium truncate">620 units to Tier 2 pricing — 4% off</p>
+              <p class="font-mono text-[11px] text-faint mt-0.5">Annex A · quarter ends 30 Sep</p>
+            </div>
+            <span class="font-mono text-[11px] text-faint shrink-0">Q3</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 2. Problem ─────────────────────────────────────────── -->
+<section id="problem" class="border-b border-line">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <p class="eyebrow mb-4">The problem</p>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[20ch] leading-[1.12]">One contract, tracked the way it is today.</h2>
+    <p class="mt-4 text-[16.5px] text-muted max-w-[58ch] leading-[1.6]">A real sequence. Nothing goes wrong procedurally — the file is stored correctly, the team does its job. The money is still lost.</p>
+
+    <div class="mt-12 grid md:grid-cols-5 gap-px bg-line border border-line rounded-xl overflow-hidden">
+      <div class="bg-white p-5">
+        <p class="font-mono text-[11px] text-faint tracking-wider">DAY 0</p>
+        <p class="mt-3 font-medium text-[15px]">Agreement signed</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">Both sides read all 34 pages. Terms are negotiated carefully.</p>
+      </div>
+      <div class="bg-white p-5">
+        <p class="font-mono text-[11px] text-faint tracking-wider">DAY 1</p>
+        <p class="mt-3 font-medium text-[15px]">Filed to the shared drive</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">Two dates get copied into a calendar. The other 19 obligations don't.</p>
+      </div>
+      <div class="bg-white p-5">
+        <p class="font-mono text-[11px] text-faint tracking-wider">DAY 46</p>
+        <p class="mt-3 font-medium text-[15px]">The person who signed it moves on</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">Context lived in one head. It leaves with them.</p>
+      </div>
+      <div class="bg-white p-5">
+        <p class="font-mono text-[11px] text-faint tracking-wider">DAY 112</p>
+        <p class="mt-3 font-medium text-[15px]">Delivery arrives 6 days late</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">Ops logs the delay, chases the vendor, moves on. No one opens the contract.</p>
+      </div>
+      <div class="bg-white p-5">
+        <p class="font-mono text-[11px] text-faint tracking-wider text-bad">DAY 118</p>
+        <p class="mt-3 font-medium text-[15px]">Invoice paid in full</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">The 2% late-delivery credit is never claimed. The 30-day claim window closes.</p>
+      </div>
+    </div>
+
+    <div class="mt-10 grid md:grid-cols-3 gap-5">
+      <div class="border border-line rounded-xl p-6">
+        <p class="text-[15px] font-medium">Read once, at the wrong time</p>
+        <p class="mt-2 text-[14px] text-muted leading-[1.6]">Clauses are reviewed during negotiation, but they only become relevant months later — when nobody is reading.</p>
+      </div>
+      <div class="border border-line rounded-xl p-6">
+        <p class="text-[15px] font-medium">Nobody owns it full-time</p>
+        <p class="mt-2 text-[14px] text-muted leading-[1.6]">A 60-person distributor can't justify a contracts hire, so tracking falls to whoever closed the deal, on top of their real job.</p>
+      </div>
+      <div class="border border-line rounded-xl p-6">
+        <p class="text-[15px] font-medium">Enterprise tools don't fit</p>
+        <p class="mt-2 text-[14px] text-muted leading-[1.6]">Full contract lifecycle platforms are priced and scoped for legal departments that these companies don't have.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 3. How it works ────────────────────────────────────── -->
+<section id="how" class="border-b border-line bg-surface">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <p class="eyebrow mb-4">How it works</p>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[24ch] leading-[1.12]">From a filed PDF to a monitored obligation.</h2>
+
+    <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <!-- step -->
+      <div class="bg-white border border-line rounded-xl p-5">
+        <div class="w-9 h-9 rounded-lg border border-line flex items-center justify-center">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2B4ACB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        </div>
+        <p class="font-mono text-[11px] text-faint mt-4 tracking-wider">STEP 1</p>
+        <p class="font-medium text-[15px] mt-1.5">Add documents</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">Drag in PDFs and Word files, or forward them to your workspace inbox. Scans are read with OCR.</p>
+      </div>
+      <div class="bg-white border border-line rounded-xl p-5">
+        <div class="w-9 h-9 rounded-lg border border-line flex items-center justify-center">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2B4ACB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 10h10M4 15h7"/><rect x="14" y="13" width="7" height="7" rx="1.5"/></svg>
+        </div>
+        <p class="font-mono text-[11px] text-faint mt-4 tracking-wider">STEP 2</p>
+        <p class="font-medium text-[15px] mt-1.5">Obligations are extracted</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">Each clause becomes a structured record — type, trigger, value, party, date — with a link back to its page.</p>
+      </div>
+      <div class="bg-white border border-line rounded-xl p-5">
+        <div class="w-9 h-9 rounded-lg border border-line flex items-center justify-center">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2B4ACB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>
+        </div>
+        <p class="font-mono text-[11px] text-faint mt-4 tracking-wider">STEP 3</p>
+        <p class="font-medium text-[15px] mt-1.5">Reviewed once, then stored</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">Low-confidence items are flagged for a person to confirm. After that the workspace is the record.</p>
+      </div>
+      <div class="bg-white border border-line rounded-xl p-5">
+        <div class="w-9 h-9 rounded-lg border border-line flex items-center justify-center">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2B4ACB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <p class="font-mono text-[11px] text-faint mt-4 tracking-wider">STEP 4</p>
+        <p class="font-medium text-[15px] mt-1.5">Ask in plain language</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">"What do we get if Acme is late?" Answers cite the clause, document and page they came from.</p>
+      </div>
+      <div class="bg-white border border-line rounded-xl p-5">
+        <div class="w-9 h-9 rounded-lg border border-line flex items-center justify-center">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2B4ACB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        </div>
+        <p class="font-mono text-[11px] text-faint mt-4 tracking-wider">STEP 5</p>
+        <p class="font-medium text-[15px] mt-1.5">Alerts, then a draft letter</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">You're notified before a window closes, with a claim or notice letter ready to review and send.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 4. Interactive demo ────────────────────────────────── -->
+<section id="demo" class="border-b border-line">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <p class="eyebrow mb-4">Sample workspace</p>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[24ch] leading-[1.12]">Ask the contract instead of reopening it.</h2>
+    <p class="mt-4 text-[16.5px] text-muted max-w-[58ch] leading-[1.6]">A working demo with four documents already processed. Pick a question, or type your own.</p>
+
+    <div class="mt-10 border border-line rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(20,24,31,.04),0_12px_32px_-16px_rgba(20,24,31,.12)]">
+      <div class="grid lg:grid-cols-[268px_1fr]">
+
+        <!-- file rail -->
+        <aside class="border-b lg:border-b-0 lg:border-r border-line bg-surface p-4">
+          <p class="eyebrow mb-3">Documents · 4</p>
+          <ul class="space-y-1.5" id="fileList">
+            <li class="flex gap-2.5 items-start bg-white border border-line rounded-lg px-3 py-2.5" data-file="Supplier Agreement — Acme Logistics.pdf">
+              <svg class="mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B94A0" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+              <div class="min-w-0">
+                <p class="text-[13px] font-medium leading-tight">Supplier Agreement — Acme Logistics.pdf</p>
+                <p class="font-mono text-[10.5px] text-faint mt-1">34 pages · 21 obligations</p>
+              </div>
+            </li>
+            <li class="flex gap-2.5 items-start bg-white border border-line rounded-lg px-3 py-2.5">
+              <svg class="mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B94A0" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+              <div class="min-w-0">
+                <p class="text-[13px] font-medium leading-tight">Logistics MOU — Northbridge.pdf</p>
+                <p class="font-mono text-[10.5px] text-faint mt-1">12 pages · 8 obligations</p>
+              </div>
+            </li>
+            <li class="flex gap-2.5 items-start bg-white border border-line rounded-lg px-3 py-2.5">
+              <svg class="mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B94A0" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+              <div class="min-w-0">
+                <p class="text-[13px] font-medium leading-tight">SLA Contract — Vertex IT.pdf</p>
+                <p class="font-mono text-[10.5px] text-faint mt-1">19 pages · 14 obligations</p>
+              </div>
+            </li>
+            <li class="flex gap-2.5 items-start bg-white border border-line rounded-lg px-3 py-2.5">
+              <svg class="mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B94A0" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+              <div class="min-w-0">
+                <p class="text-[13px] font-medium leading-tight">Purchase Order #4471.pdf</p>
+                <p class="font-mono text-[10.5px] text-faint mt-1">3 pages · 5 obligations</p>
+              </div>
+            </li>
+          </ul>
+          <div class="mt-4 border border-dashed border-line rounded-lg py-4 text-center">
+            <p class="text-[12.5px] text-faint">Drop a file to add</p>
+          </div>
+        </aside>
+
+        <!-- chat -->
+        <div class="flex flex-col min-h-[520px]">
+          <div class="px-5 h-12 border-b border-line flex items-center justify-between">
+            <p class="text-[13.5px] font-medium">Workspace assistant</p>
+            <p class="font-mono text-[11px] text-faint">48 obligations indexed</p>
+          </div>
+
+          <div id="chatLog" class="flex-1 overflow-y-auto px-5 py-5 space-y-4 max-h-[440px]"></div>
+
+          <div class="border-t border-line p-4">
+            <div id="suggestions" class="flex flex-wrap gap-2 mb-3"></div>
+            <form id="chatForm" class="flex gap-2">
+              <input id="chatInput" type="text" autocomplete="off" placeholder="Ask about a contract…"
+                class="flex-1 text-[14px] border border-line rounded-md px-3 py-2.5 placeholder:text-faint focus:border-accent focus:outline-none">
+              <button type="submit" class="bg-ink text-white text-[14px] font-medium px-4 rounded-md hover:bg-black transition-colors">Ask</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 5. Obligation dashboard ────────────────────────────── -->
+<section id="obligations" class="border-b border-line bg-surface">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <p class="eyebrow mb-4">Obligation register</p>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[26ch] leading-[1.12]">Every commitment in one register, not twelve PDFs.</h2>
+
+    <div class="mt-10 bg-white border border-line rounded-xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-[13.5px] min-w-[880px]">
+          <thead>
+            <tr class="bg-surface border-b border-line text-left">
+              <th class="font-mono text-[11px] uppercase tracking-wider text-faint font-medium px-5 py-3">Type</th>
+              <th class="font-mono text-[11px] uppercase tracking-wider text-faint font-medium px-5 py-3">Vendor</th>
+              <th class="font-mono text-[11px] uppercase tracking-wider text-faint font-medium px-5 py-3">Status</th>
+              <th class="font-mono text-[11px] uppercase tracking-wider text-faint font-medium px-5 py-3">Due</th>
+              <th class="font-mono text-[11px] uppercase tracking-wider text-faint font-medium px-5 py-3">Priority</th>
+              <th class="font-mono text-[11px] uppercase tracking-wider text-faint font-medium px-5 py-3">Source</th>
+            </tr>
+          </thead>
+          <tbody id="obligationRows" class="divide-y divide-line"></tbody>
+        </table>
+      </div>
+    </div>
+    <p class="mt-4 font-mono text-[11.5px] text-faint">Showing 6 of 48 · sorted by urgency</p>
+  </div>
+</section>
+
+<!-- ── 6. Alerts ──────────────────────────────────────────── -->
+<section id="alerts" class="border-b border-line">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <p class="eyebrow mb-4">Alerts</p>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[24ch] leading-[1.12]">Told before the window closes, not after.</h2>
+    <p class="mt-4 text-[16.5px] text-muted max-w-[58ch] leading-[1.6]">Delivered by email, Slack or WhatsApp. Each one carries the clause it came from and the action it needs.</p>
+
+    <div class="mt-10 grid md:grid-cols-2 gap-4">
+      <div class="border border-line rounded-xl p-5 flex gap-4">
+        <span class="w-2 h-2 rounded-full bg-bad mt-2 shrink-0"></span>
+        <div class="flex-1">
+          <p class="font-medium text-[15px]">Acme delivery overdue by 3 days</p>
+          <p class="mt-1.5 text-[14px] text-muted leading-[1.6]">Shipment 43 was due 19 July. At 5 business days late, a 2% invoice credit becomes claimable — $1,684 on this shipment.</p>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <span class="font-mono text-[11px] text-faint border border-line rounded px-2 py-1">Clause 7.3 · p.18</span>
+            <button class="text-[13px] font-medium text-accent hover:underline">Draft claim letter</button>
+          </div>
+        </div>
+      </div>
+      <div class="border border-line rounded-xl p-5 flex gap-4">
+        <span class="w-2 h-2 rounded-full bg-warn mt-2 shrink-0"></span>
+        <div class="flex-1">
+          <p class="font-medium text-[15px]">Renewal notice required in 12 days</p>
+          <p class="mt-1.5 text-[14px] text-muted leading-[1.6]">Vertex IT renews automatically for 12 months unless written notice is given by 2 November. After that the term is locked.</p>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <span class="font-mono text-[11px] text-faint border border-line rounded px-2 py-1">Clause 12.1 · p.31</span>
+            <button class="text-[13px] font-medium text-accent hover:underline">Draft notice</button>
+          </div>
+        </div>
+      </div>
+      <div class="border border-line rounded-xl p-5 flex gap-4">
+        <span class="w-2 h-2 rounded-full bg-ok mt-2 shrink-0"></span>
+        <div class="flex-1">
+          <p class="font-medium text-[15px]">620 units from the next discount tier</p>
+          <p class="mt-1.5 text-[14px] text-muted leading-[1.6]">Q3 volume is 4,380 units. Crossing 5,000 before 30 September applies 4% retroactively to the whole quarter — $9,900 back.</p>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <span class="font-mono text-[11px] text-faint border border-line rounded px-2 py-1">Annex A · p.9</span>
+            <button class="text-[13px] font-medium text-accent hover:underline">Notify procurement</button>
+          </div>
+        </div>
+      </div>
+      <div class="border border-line rounded-xl p-5 flex gap-4">
+        <span class="w-2 h-2 rounded-full bg-warn mt-2 shrink-0"></span>
+        <div class="flex-1">
+          <p class="font-medium text-[15px]">Insurance certificate expires in 21 days</p>
+          <p class="mt-1.5 text-[14px] text-muted leading-[1.6]">Northbridge must keep $2M cargo cover for the term. The certificate on file lapses 12 August — request a renewed copy.</p>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <span class="font-mono text-[11px] text-faint border border-line rounded px-2 py-1">Clause 9.4 · p.7</span>
+            <button class="text-[13px] font-medium text-accent hover:underline">Request document</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 7. Document viewer / extraction ────────────────────── -->
+<section id="extraction" class="border-b border-line bg-surface">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <p class="eyebrow mb-4">Traceability</p>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[26ch] leading-[1.12]">Every field points back to the sentence it came from.</h2>
+    <p class="mt-4 text-[16.5px] text-muted max-w-[58ch] leading-[1.6]">Nothing is asserted without a source. If the system says you're owed money, you can see the clause that says so in one click.</p>
+
+    <div class="mt-10 grid lg:grid-cols-[1.15fr_1fr] gap-5 items-start">
+
+      <!-- page mockup -->
+      <div class="bg-white border border-line rounded-xl overflow-hidden">
+        <div class="flex items-center justify-between px-5 h-11 border-b border-line bg-white">
+          <p class="font-mono text-[11.5px] text-muted">Supplier Agreement — Acme Logistics.pdf</p>
+          <p class="font-mono text-[11.5px] text-faint">Page 18 of 34</p>
+        </div>
+        <div class="p-7 md:p-9 text-[13.5px] leading-[1.95] text-ink/90">
+          <p class="font-mono text-[11.5px] tracking-wider text-faint mb-4">7. DELIVERY AND PERFORMANCE</p>
+          <p class="text-muted"><span class="font-mono text-[12px] mr-1.5">7.1</span> The Supplier shall deliver the Goods in accordance with the delivery schedule set out in Schedule 2, time being of the essence.</p>
+          <p class="text-muted mt-3"><span class="font-mono text-[12px] mr-1.5">7.2</span> The Supplier shall notify the Buyer in writing within twenty-four (24) hours of becoming aware of any anticipated delay.</p>
+          <p class="mt-3"><span class="font-mono text-[12px] mr-1.5">7.3</span> <span class="clause-mark">Where any delivery exceeds five (5) business days beyond the scheduled delivery date, the Supplier shall compensate the Buyer an amount equal to two per cent (2%) of the invoice value of the affected consignment</span>, such amount to be credited against the next invoice issued.</p>
+          <p class="text-muted mt-3"><span class="font-mono text-[12px] mr-1.5">7.4</span> Compensation payable under Clause 7.3 shall not exceed ten per cent (10%) of the aggregate invoice value in any calendar quarter.</p>
+          <p class="text-muted mt-3"><span class="font-mono text-[12px] mr-1.5">7.5</span> Nothing in this Clause 7 shall limit the Buyer's right to terminate under Clause 14 for persistent failure to deliver.</p>
+        </div>
+      </div>
+
+      <!-- extraction panel -->
+      <div class="bg-white border border-line rounded-xl">
+        <div class="flex items-center justify-between px-5 h-11 border-b border-line">
+          <p class="text-[13.5px] font-medium">Extracted obligation</p>
+          <span class="font-mono text-[11px] text-ok border border-ok/25 bg-ok/5 rounded px-2 py-0.5">97% confidence</span>
+        </div>
+        <dl class="divide-y divide-line">
+          <div class="px-5 py-3.5 grid grid-cols-[104px_1fr] gap-3 items-baseline">
+            <dt class="font-mono text-[11px] uppercase tracking-wider text-faint">Type</dt>
+            <dd class="text-[14px]">Compensation — late delivery</dd>
+          </div>
+          <div class="px-5 py-3.5 grid grid-cols-[104px_1fr] gap-3 items-baseline">
+            <dt class="font-mono text-[11px] uppercase tracking-wider text-faint">Trigger</dt>
+            <dd class="text-[14px]">Delivery more than 5 business days late</dd>
+          </div>
+          <div class="px-5 py-3.5 grid grid-cols-[104px_1fr] gap-3 items-baseline">
+            <dt class="font-mono text-[11px] uppercase tracking-wider text-faint">Value</dt>
+            <dd class="text-[14px]">2% of consignment invoice value</dd>
+          </div>
+          <div class="px-5 py-3.5 grid grid-cols-[104px_1fr] gap-3 items-baseline">
+            <dt class="font-mono text-[11px] uppercase tracking-wider text-faint">Cap</dt>
+            <dd class="text-[14px]">10% of quarterly invoice value <span class="text-faint">· from 7.4</span></dd>
+          </div>
+          <div class="px-5 py-3.5 grid grid-cols-[104px_1fr] gap-3 items-baseline">
+            <dt class="font-mono text-[11px] uppercase tracking-wider text-faint">Owed by</dt>
+            <dd class="text-[14px]">Acme Logistics</dd>
+          </div>
+          <div class="px-5 py-3.5 grid grid-cols-[104px_1fr] gap-3 items-baseline">
+            <dt class="font-mono text-[11px] uppercase tracking-wider text-faint">Settlement</dt>
+            <dd class="text-[14px]">Credit against next invoice</dd>
+          </div>
+          <div class="px-5 py-3.5 grid grid-cols-[104px_1fr] gap-3 items-baseline">
+            <dt class="font-mono text-[11px] uppercase tracking-wider text-faint">Source</dt>
+            <dd class="font-mono text-[12px] text-accent">Clause 7.3 · p.18 · linked to 7.4</dd>
+          </div>
+        </dl>
+        <div class="px-5 py-4 border-t border-line bg-surface flex items-center justify-between gap-3 rounded-b-xl">
+          <p class="text-[13px] text-muted">Confirmed by R. Iqbal · 14 Mar 2026</p>
+          <button class="text-[13px] font-medium border border-line bg-white px-3 py-1.5 rounded-md hover:border-ink transition-colors">Open clause</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="mt-6 text-[14px] text-muted max-w-[70ch] leading-[1.6]">Clause 7.3 alone is incomplete — the cap that limits it sits in 7.4, and the schedule it depends on is 6 pages earlier. Reading a clause in isolation is how the wrong number reaches finance.</p>
+  </div>
+</section>
+
+<!-- ── 8. Why AI ──────────────────────────────────────────── -->
+<section class="bg-ink text-white">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <p class="eyebrow mb-4" style="color:#6E7A8C">What the model actually does</p>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[26ch] leading-[1.12]">Seven jobs, none of them magic.</h2>
+
+    <div class="mt-12 grid md:grid-cols-2 gap-x-14 gap-y-px">
+      <div class="border-t border-white/10 py-5">
+        <p class="font-medium text-[15.5px]">Reads legal phrasing</p>
+        <p class="mt-1.5 text-[14px] text-white/55 leading-[1.6]">"Notwithstanding", "provided that", "save as set out in Schedule 3" — conditional language that keyword search cannot resolve.</p>
+      </div>
+      <div class="border-t border-white/10 py-5">
+        <p class="font-medium text-[15.5px]">Turns clauses into records</p>
+        <p class="mt-1.5 text-[14px] text-white/55 leading-[1.6]">A paragraph becomes a typed row with a trigger, a value, a party and a date that a calendar and a query can act on.</p>
+      </div>
+      <div class="border-t border-white/10 py-5">
+        <p class="font-medium text-[15.5px]">Connects related documents</p>
+        <p class="mt-1.5 text-[14px] text-white/55 leading-[1.6]">Links the purchase order to the master agreement that governs it, and the amendment that changed the delivery window.</p>
+      </div>
+      <div class="border-t border-white/10 py-5">
+        <p class="font-medium text-[15.5px]">Retrieves the exact clause</p>
+        <p class="mt-1.5 text-[14px] text-white/55 leading-[1.6]">Answers are assembled from specific passages, not summarised impressions of a document.</p>
+      </div>
+      <div class="border-t border-white/10 py-5">
+        <p class="font-medium text-[15.5px]">Answers questions as asked</p>
+        <p class="mt-1.5 text-[14px] text-white/55 leading-[1.6]">Operations staff ask "can we still claim this?" — not "SELECT * FROM obligations".</p>
+      </div>
+      <div class="border-t border-white/10 py-5">
+        <p class="font-medium text-[15.5px]">Writes the follow-up</p>
+        <p class="mt-1.5 text-[14px] text-white/55 leading-[1.6]">Claim notices and renewal letters drafted with the real dates, amounts and clause references already filled in.</p>
+      </div>
+      <div class="border-t border-white/10 py-5 md:col-span-2">
+        <p class="font-medium text-[15.5px]">Keeps its work checkable</p>
+        <p class="mt-1.5 text-[14px] text-white/55 leading-[1.6]">Every extracted field carries a confidence score and a citation. Anything uncertain is flagged for a person before it reaches a dashboard. The reviewer's job is to confirm what was found — not to re-read 34 pages to find it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 9. Integrations ────────────────────────────────────── -->
+<section class="border-b border-line">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <p class="eyebrow mb-4">On the roadmap</p>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[24ch] leading-[1.12]">Where obligations should surface next.</h2>
+    <p class="mt-4 text-[16.5px] text-muted max-w-[58ch] leading-[1.6]">Not yet connected. Ordered by how often the people we've spoken to said they'd want it.</p>
+
+    <div class="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3" id="integrationGrid"></div>
+  </div>
+</section>
+
+<!-- ── Footer ─────────────────────────────────────────────── -->
+<footer>
+  <div class="max-w-shell mx-auto px-5 py-14">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-8">
+      <div>
+        <div class="flex items-center gap-2.5">
+          <span class="w-6 h-6 rounded-[5px] bg-ink flex items-center justify-center">
+            <span class="w-2.5 h-[2px] bg-marker block"></span>
+          </span>
+          <span class="font-semibold text-[15px] h-tight">Provision</span>
+        </div>
+        <p class="mt-3 text-[13.5px] text-muted max-w-[38ch] leading-[1.6]">Contract obligations, extracted once and monitored until they matter.</p>
+      </div>
+      <div class="flex gap-10 text-[13.5px]">
+        <div>
+          <p class="eyebrow mb-3">Contact</p>
+          <a href="mailto:hello@provision.app" class="block text-muted hover:text-ink transition-colors">hello@provision.app</a>
+        </div>
+        <div>
+          <p class="eyebrow mb-3">Elsewhere</p>
+          <a href="#" class="block text-muted hover:text-ink transition-colors">GitHub</a>
+          <a href="#" class="block text-muted hover:text-ink transition-colors mt-1">LinkedIn</a>
+        </div>
+      </div>
+    </div>
+    <div class="fade-line mt-10 mb-5"></div>
+    <p class="font-mono text-[11.5px] text-faint">Proof of concept · not a legal service · all documents, vendors and figures shown are fictional</p>
+  </div>
+</footer>
+
+<script>
+/* ────────────────────────────────────────────────────────────
+   Demo data. No backend, no APIs — everything below is static.
+   ──────────────────────────────────────────────────────────── */
+
+const ANSWERS = [
+  {
+    q: "When is our next delivery from Acme?",
+    lines: [
+      "Shipment 43 is scheduled for 12 August 2026. Two consignments remain in the Q3 schedule:",
+    ],
+    list: [
+      "Shipment 43 — 12 Aug 2026 — 1,200 units",
+      "Shipment 44 — 26 Sep 2026 — 1,450 units"
+    ],
+    tail: "Acme must give written notice within 24 hours if either date is at risk.",
+    cites: [
+      { doc: "Supplier Agreement — Acme Logistics.pdf", ref: "Schedule 2", page: "p.24" },
+      { doc: "Supplier Agreement — Acme Logistics.pdf", ref: "Clause 7.2", page: "p.18" }
+    ]
+  },
+  {
+    q: "What penalties apply if shipment 43 is delayed?",
+    lines: [
+      "If shipment 43 arrives more than 5 business days late, Acme owes 2% of the consignment invoice value as a credit against your next invoice.",
+      "Invoice value is $84,200 — so the credit would be $1,684. Quarterly compensation is capped at 10% of aggregate invoice value, and you have used 0% of that cap so far this quarter."
+    ],
+    tail: "Claims must be made in writing within 30 days of receipt.",
+    cites: [
+      { doc: "Supplier Agreement — Acme Logistics.pdf", ref: "Clause 7.3", page: "p.18" },
+      { doc: "Supplier Agreement — Acme Logistics.pdf", ref: "Clause 7.4", page: "p.18" },
+      { doc: "Supplier Agreement — Acme Logistics.pdf", ref: "Clause 15.2", page: "p.29" }
+    ],
+    action: "Draft claim letter"
+  },
+  {
+    q: "What discounts become active above 5,000 units?",
+    lines: [
+      "Orders above 5,000 units in a calendar quarter move to Tier 2 pricing — 4% off the unit price, applied retroactively to every unit ordered in that quarter.",
+      "Q3 volume to date is 4,380 units. Another 620 units before 30 September would trigger the tier and return roughly $9,900 on volume already ordered."
+    ],
+    cites: [
+      { doc: "Supplier Agreement — Acme Logistics.pdf", ref: "Clause 4.2", page: "p.11" },
+      { doc: "Supplier Agreement — Acme Logistics.pdf", ref: "Annex A", page: "p.9" }
+    ]
+  },
+  {
+    q: "When does this agreement renew?",
+    lines: [
+      "The Acme agreement renews automatically on 1 January 2027 for a further 12 months unless either party gives written notice at least 60 days beforehand.",
+      "Your notice deadline is 2 November 2026 — 103 days from today. The Vertex IT SLA renews sooner, with notice due 3 August 2026."
+    ],
+    cites: [
+      { doc: "Supplier Agreement — Acme Logistics.pdf", ref: "Clause 12.1", page: "p.31" },
+      { doc: "SLA Contract — Vertex IT.pdf", ref: "Clause 8.1", page: "p.14" }
+    ]
+  },
+  {
+    q: "What obligations are due this month?",
+    lines: [ "Four obligations fall due before 31 July 2026:" ],
+    list: [
+      "Acme — late delivery credit claimable, shipment 43 · overdue 3 days",
+      "Northbridge — updated insurance certificate requested · due 26 Jul",
+      "Vertex IT — quarterly service review meeting · due 29 Jul",
+      "Northbridge — monthly volume report to be issued · due 31 Jul"
+    ],
+    tail: "One further item, the Vertex renewal notice, falls due 3 August.",
+    cites: [
+      { doc: "4 documents", ref: "6 clauses", page: "register view" }
+    ]
+  }
+];
+
+const FALLBACK = {
+  lines: [
+    "This demo answers from four sample documents only, so that question isn't covered here.",
+    "In a live workspace the assistant reads whatever you've uploaded and cites the clause behind every answer."
+  ],
+  tail: "Try one of the suggested questions below to see a full response."
+};
+
+const OBLIGATIONS = [
+  { type:"Late delivery compensation", vendor:"Acme Logistics", status:"Claimable", tone:"bad",  due:"19 Jul 2026", prio:"High",   src:"Clause 7.3 · p.18" },
+  { type:"Renewal notice",             vendor:"Vertex IT",      status:"Action needed", tone:"warn", due:"03 Aug 2026", prio:"High",   src:"Clause 8.1 · p.14" },
+  { type:"Insurance certificate",      vendor:"Northbridge",    status:"Action needed", tone:"warn", due:"12 Aug 2026", prio:"Medium", src:"Clause 9.4 · p.7"  },
+  { type:"Discount threshold",         vendor:"Acme Logistics", status:"Monitoring",    tone:"ok",   due:"30 Sep 2026", prio:"Medium", src:"Annex A · p.9"     },
+  { type:"SLA response time",          vendor:"Vertex IT",      status:"On track",      tone:"ok",   due:"Continuous",  prio:"Low",    src:"Clause 3.2 · p.6"  },
+  { type:"Quarterly audit",            vendor:"Northbridge",    status:"Scheduled",     tone:"neutral", due:"15 Oct 2026", prio:"Low", src:"Clause 11.5 · p.10" }
+];
+
+const INTEGRATIONS = ["SAP","Oracle NetSuite","Microsoft Teams","Slack","Google Calendar","Outlook & email","SharePoint","QuickBooks"];
+
+/* ── Obligation table ── */
+const toneMap = {
+  bad:  "text-bad bg-bad/5 border-bad/20",
+  warn: "text-warn bg-warn/5 border-warn/20",
+  ok:   "text-ok bg-ok/5 border-ok/20",
+  neutral: "text-muted bg-surface border-line"
+};
+document.getElementById('obligationRows').innerHTML = OBLIGATIONS.map(o => `
+  <tr class="hover:bg-surface/60 transition-colors">
+    <td class="px-5 py-3.5 font-medium">${o.type}</td>
+    <td class="px-5 py-3.5 text-muted">${o.vendor}</td>
+    <td class="px-5 py-3.5">
+      <span class="inline-block font-mono text-[11px] border rounded px-2 py-0.5 ${toneMap[o.tone]}">${o.status}</span>
+    </td>
+    <td class="px-5 py-3.5 font-mono text-[12.5px] text-muted">${o.due}</td>
+    <td class="px-5 py-3.5 text-muted">${o.prio}</td>
+    <td class="px-5 py-3.5 font-mono text-[12px] text-accent">${o.src}</td>
+  </tr>`).join('');
+
+/* ── Integrations ── */
+document.getElementById('integrationGrid').innerHTML = INTEGRATIONS.map(name => `
+  <div class="border border-line rounded-xl px-4 py-5 flex items-center justify-between gap-3 bg-white">
+    <span class="text-[14px] text-muted">${name}</span>
+    <span class="font-mono text-[10.5px] text-faint border border-line rounded px-1.5 py-0.5">Planned</span>
+  </div>`).join('');
+
+/* ── Chat ── */
+const log = document.getElementById('chatLog');
+const form = document.getElementById('chatForm');
+const input = document.getElementById('chatInput');
+const sugg = document.getElementById('suggestions');
+let busy = false;
+
+function esc(s){ return s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function userBubble(text){
+  const el = document.createElement('div');
+  el.className = 'msg-in flex justify-end';
+  el.innerHTML = `<div class="bg-ink text-white text-[14px] leading-[1.55] rounded-lg rounded-br-sm px-3.5 py-2.5 max-w-[80%]">${esc(text)}</div>`;
+  log.appendChild(el); scroll();
+}
+
+function typingBubble(){
+  const el = document.createElement('div');
+  el.id = 'typing';
+  el.className = 'msg-in';
+  el.innerHTML = `<div class="dot-typing border border-line rounded-lg px-3.5 py-3 inline-block"><span></span><span></span><span></span></div>`;
+  log.appendChild(el); scroll();
+  return el;
+}
+
+function answerBubble(a){
+  const body = (a.lines || []).map(l => `<p class="text-[14px] leading-[1.6]">${esc(l)}</p>`).join('');
+  const list = a.list ? `<ul class="space-y-1.5 border-l-2 border-line pl-3">${
+      a.list.map(i => `<li class="text-[13.5px] text-muted leading-[1.5]">${esc(i)}</li>`).join('')
+    }</ul>` : '';
+  const tail = a.tail ? `<p class="text-[13.5px] text-muted leading-[1.6]">${esc(a.tail)}</p>` : '';
+  const cites = a.cites ? `
+    <div class="pt-3 border-t border-line space-y-1.5">
+      <p class="eyebrow">Source</p>
+      ${a.cites.map(c => `
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span class="font-mono text-[11.5px] text-accent">${esc(c.doc)}</span>
+          <span class="font-mono text-[11px] text-faint">${esc(c.ref)}</span>
+          <span class="font-mono text-[11px] text-faint">${esc(c.page)}</span>
+        </div>`).join('')}
+    </div>` : '';
+  const action = a.action ? `
+    <div class="pt-3">
+      <button class="text-[13px] font-medium border border-line px-3 py-1.5 rounded-md hover:border-ink transition-colors">${esc(a.action)}</button>
+    </div>` : '';
+
+  const el = document.createElement('div');
+  el.className = 'msg-in';
+  el.innerHTML = `<div class="border border-line rounded-lg rounded-bl-sm p-4 space-y-3 max-w-[92%]">${body}${list}${tail}${cites}${action}</div>`;
+  log.appendChild(el); scroll();
+}
+
+function scroll(){ log.scrollTop = log.scrollHeight; }
+
+function match(text){
+  const t = text.toLowerCase();
+  const keys = [
+    ['deliver','next','when','acme'],
+    ['penalt','late','delay','43','compensat'],
+    ['discount','tier','5,000','5000','unit','volume'],
+    ['renew','expire','notice','term'],
+    ['this month','due','obligation','upcoming','july']
+  ];
+  let best = -1, score = 0;
+  keys.forEach((set, i) => {
+    const s = set.reduce((n,k) => n + (t.includes(k) ? 1 : 0), 0);
+    if (s > score) { score = s; best = i; }
+  });
+  return score > 0 ? ANSWERS[best] : FALLBACK;
+}
+
+function ask(text){
+  if (busy || !text.trim()) return;
+  busy = true;
+  userBubble(text);
+  const t = typingBubble();
+  setTimeout(() => {
+    t.remove();
+    answerBubble(match(text));
+    busy = false;
+  }, 620);
+}
+
+sugg.innerHTML = ANSWERS.map(a =>
+  `<button type="button" class="text-[12.5px] text-muted border border-line rounded-full px-3 py-1.5 hover:border-ink hover:text-ink transition-colors">${a.q}</button>`
+).join('');
+sugg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => ask(b.textContent)));
+
+form.addEventListener('submit', e => { e.preventDefault(); ask(input.value); input.value = ''; });
+
+/* opening message */
+answerBubble({
+  lines: ["Four documents are indexed in this workspace — 48 obligations extracted, 3 flagged for review."],
+  tail: "Ask anything about delivery dates, penalties, discounts or renewals."
+});
+</script>
+</body>
+</html>

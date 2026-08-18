@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Provision — Contract obligations, actively monitored</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        ink:      '#14181F',
+        muted:    '#626B78',
+        faint:    '#8B94A0',
+        line:     '#E3E6EA',
+        surface:  '#F7F8FA',
+        accent:   '#2B4ACB',
+        accentdk: '#1E37A0',
+        marker:   '#FBE7A1',
+        markerdk: '#DEBB55',
+        ok:       '#0E7A5F',
+        warn:     '#B45309',
+        bad:      '#B42318'
+      },
+      fontFamily: {
+        sans: ['Instrument Sans', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+      },
+      maxWidth: { shell: '1120px' }
+    }
+  }
+}
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  body { -webkit-font-smoothing: antialiased; }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: #8B94A0; font-weight: 500;
+  }
+  .h-tight { letter-spacing: -0.022em; }
+  .clause-mark {
+    background: linear-gradient(180deg, transparent 8%, #FBE7A1 8%, #FBE7A1 92%, transparent 92%);
+    box-shadow: inset 0 -2px 0 #DEBB55;
+  }
+  .fade-line { height:1px; background:#E3E6EA; }
+  .msg-in { animation: rise .28s ease-out both; }
+  @keyframes rise { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
+  .dot-typing span {
+    display:inline-block;width:5px;height:5px;border-radius:99px;background:#8B94A0;margin-right:3px;
+    animation: blink 1.1s infinite;
+  }
+  .dot-typing span:nth-child(2){animation-delay:.18s} .dot-typing span:nth-child(3){animation-delay:.36s}
+  @keyframes blink { 0%,60%,100%{opacity:.25} 30%{opacity:1} }
+  :focus-visible { outline: 2px solid #2B4ACB; outline-offset: 2px; border-radius: 4px; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #DCE0E6; border-radius: 99px; }
+  /* Document rail: delete control stays out of the way until needed. */
+  .doc-row .doc-remove { opacity: 0; transition: opacity .15s ease; }
+  .doc-row:hover .doc-remove, .doc-row:focus-within .doc-remove { opacity: 1; }
+  .dropzone.is-over { border-color: #2B4ACB; background: #F2F5FF; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
+</style>
+</head>
+<body class="bg-white text-ink font-sans antialiased">
+
+<!-- ── Build banner ───────────────────────────────────────── -->
+<div class="bg-ink text-white text-[12.5px] py-2 px-5 text-center font-mono tracking-wide">
+  Phase 1 · uploading and asking are live · obligation monitoring, alerts and drafting are illustrative
+</div>
+
+<!-- ── Nav ────────────────────────────────────────────────── -->
+<header class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-line">
+  <div class="max-w-shell mx-auto px-5 h-16 flex items-center justify-between">
+    <a href="#top" class="flex items-center gap-2.5">
+      <span class="w-6 h-6 rounded-[5px] bg-ink flex items-center justify-center">
+        <span class="w-2.5 h-[2px] bg-marker block"></span>
+      </span>
+      <span class="font-semibold text-[15px] h-tight">Provision</span>
+    </a>
+    <nav class="hidden md:flex items-center gap-7 text-[14px] text-muted">
+      <a href="#problem" class="hover:text-ink transition-colors">Problem</a>
+      <a href="#how" class="hover:text-ink transition-colors">How it works</a>
+      <a href="#workspace" class="hover:text-ink transition-colors">Workspace</a>
+      <a href="#obligations" class="hover:text-ink transition-colors">Obligations</a>
+      <a href="#extraction" class="hover:text-ink transition-colors">Extraction</a>
+    </nav>
+    <a href="#workspace" class="text-[14px] font-medium bg-ink text-white px-3.5 py-2 rounded-md hover:bg-black transition-colors">Open workspace</a>
+  </div>
+</header>
+
+<!-- ── 1. Hero ────────────────────────────────────────────── -->
+<section id="top" class="border-b border-line">
+  <div class="max-w-shell mx-auto px-5 py-16 md:py-24 grid lg:grid-cols-[1fr_1.05fr] gap-12 lg:gap-16 items-center">
+    <div>
+      <p class="eyebrow mb-5">Post-signature contract intelligence</p>
+      <h1 class="text-[38px] md:text-[52px] leading-[1.05] font-semibold h-tight">
+        Your contracts stop being read<br class="hidden md:block"> the day they're signed.
+      </h1>
+      <p class="mt-6 text-[17px] leading-[1.65] text-muted max-w-[46ch]">
+        Provision reads every agreement, MOU and purchase order you sign, pulls out the deadlines, penalties, compensation clauses and discount tiers inside them, and tells the right person before each one matters — with the exact clause attached.
+      </p>
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a href="#workspace" class="bg-accent hover:bg-accentdk text-white text-[14.5px] font-medium px-5 py-2.5 rounded-md transition-colors">Upload a contract</a>
+        <a href="#how" class="border border-line hover:border-ink text-[14.5px] font-medium px-5 py-2.5 rounded-md transition-colors">How it works</a>
+      </div>
+      <p class="mt-7 text-[13px] text-faint">Built for operations and finance teams at 10–300 person companies.</p>
+    </div>
+
+    <!-- dashboard mockup -->
+    <div class="rounded-xl border border-line shadow-[0_1px_2px_rgba(20,24,31,.04),0_12px_32px_-12px_rgba(20,24,31,.12)] overflow-hidden bg-white">
+      <div class="flex items-center gap-1.5 px-4 h-9 border-b border-line bg-surface">
+        <span class="w-2.5 h-2.5 rounded-full bg-[#E1E4E9]"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-[#E1E4E9]"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-[#E1E4E9]"></span>
+        <span class="ml-3 font-mono text-[11px] text-faint">provision.app / obligations</span>
+      </div>
+      <div class="p-5">
+        <div class="flex items-baseline justify-between">
+          <h3 class="font-semibold text-[15px]">This week</h3>
+          <span class="font-mono text-[11px] text-faint">22 JUL 2026</span>
+        </div>
+        <div class="grid grid-cols-3 gap-3 mt-4">
+          <div class="border border-line rounded-lg p-3">
+            <p class="font-mono text-[10.5px] text-faint uppercase tracking-wider">Recoverable</p>
+            <p class="text-[22px] font-semibold mt-1 h-tight">$14,280</p>
+          </div>
+          <div class="border border-line rounded-lg p-3">
+            <p class="font-mono text-[10.5px] text-faint uppercase tracking-wider">Due 14 days</p>
+            <p class="text-[22px] font-semibold mt-1 h-tight">7</p>
+          </div>
+          <div class="border border-line rounded-lg p-3">
+            <p class="font-mono text-[10.5px] text-faint uppercase tracking-wider">Tracked</p>
+            <p class="text-[22px] font-semibold mt-1 h-tight">148</p>
+          </div>
+        </div>
+        <div class="mt-5 space-y-2">
+          <div class="flex items-center gap-3 border border-line rounded-lg px-3 py-2.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-bad shrink-0"></span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-medium truncate">Acme delivery overdue — 2% compensation eligible</p>
+              <p class="font-mono text-[11px] text-faint mt-0.5">Clause 7.3 · $1,684</p>
+            </div>
+            <span class="font-mono text-[11px] text-bad shrink-0">3d late</span>
+          </div>
+          <div class="flex items-center gap-3 border border-line rounded-lg px-3 py-2.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-warn shrink-0"></span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-medium truncate">Renewal notice — Vertex IT</p>
+              <p class="font-mono text-[11px] text-faint mt-0.5">Clause 12.1 · written notice required</p>
+            </div>
+            <span class="font-mono text-[11px] text-warn shrink-0">12d</span>
+          </div>
+          <div class="flex items-center gap-3 border border-line rounded-lg px-3 py-2.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-ok shrink-0"></span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13.5px] font-medium truncate">620 units to Tier 2 pricing — 4% off</p>
+              <p class="font-mono text-[11px] text-faint mt-0.5">Annex A · quarter ends 30 Sep</p>
+            </div>
+            <span class="font-mono text-[11px] text-faint shrink-0">Q3</span>
+          </div>
+        </div>
+        <p class="mt-4 font-mono text-[10.5px] text-faint text-right">Illustrative — monitoring is not in this build</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 2. Problem ─────────────────────────────────────────── -->
+<section id="problem" class="border-b border-line">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <p class="eyebrow mb-4">The problem</p>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[20ch] leading-[1.12]">One contract, tracked the way it is today.</h2>
+    <p class="mt-4 text-[16.5px] text-muted max-w-[58ch] leading-[1.6]">A real sequence. Nothing goes wrong procedurally — the file is stored correctly, the team does its job. The money is still lost.</p>
+
+    <div class="mt-12 grid md:grid-cols-5 gap-px bg-line border border-line rounded-xl overflow-hidden">
+      <div class="bg-white p-5">
+        <p class="font-mono text-[11px] text-faint tracking-wider">DAY 0</p>
+        <p class="mt-3 font-medium text-[15px]">Agreement signed</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">Both sides read all 34 pages. Terms are negotiated carefully.</p>
+      </div>
+      <div class="bg-white p-5">
+        <p class="font-mono text-[11px] text-faint tracking-wider">DAY 1</p>
+        <p class="mt-3 font-medium text-[15px]">Filed to the shared drive</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">Two dates get copied into a calendar. The other 19 obligations don't.</p>
+      </div>
+      <div class="bg-white p-5">
+        <p class="font-mono text-[11px] text-faint tracking-wider">DAY 46</p>
+        <p class="mt-3 font-medium text-[15px]">The person who signed it moves on</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">Context lived in one head. It leaves with them.</p>
+      </div>
+      <div class="bg-white p-5">
+        <p class="font-mono text-[11px] text-faint tracking-wider">DAY 112</p>
+        <p class="mt-3 font-medium text-[15px]">Delivery arrives 6 days late</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">Ops logs the delay, chases the vendor, moves on. No one opens the contract.</p>
+      </div>
+      <div class="bg-white p-5">
+        <p class="font-mono text-[11px] text-faint tracking-wider text-bad">DAY 118</p>
+        <p class="mt-3 font-medium text-[15px]">Invoice paid in full</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">The 2% late-delivery credit is never claimed. The 30-day claim window closes.</p>
+      </div>
+    </div>
+
+    <div class="mt-10 grid md:grid-cols-3 gap-5">
+      <div class="border border-line rounded-xl p-6">
+        <p class="text-[15px] font-medium">Read once, at the wrong time</p>
+        <p class="mt-2 text-[14px] text-muted leading-[1.6]">Clauses are reviewed during negotiation, but they only become relevant months later — when nobody is reading.</p>
+      </div>
+      <div class="border border-line rounded-xl p-6">
+        <p class="text-[15px] font-medium">Nobody owns it full-time</p>
+        <p class="mt-2 text-[14px] text-muted leading-[1.6]">A 60-person distributor can't justify a contracts hire, so tracking falls to whoever closed the deal, on top of their real job.</p>
+      </div>
+      <div class="border border-line rounded-xl p-6">
+        <p class="text-[15px] font-medium">Enterprise tools don't fit</p>
+        <p class="mt-2 text-[14px] text-muted leading-[1.6]">Full contract lifecycle platforms are priced and scoped for legal departments that these companies don't have.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 3. How it works ────────────────────────────────────── -->
+<section id="how" class="border-b border-line bg-surface">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <p class="eyebrow mb-4">How it works</p>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[24ch] leading-[1.12]">From a filed PDF to a monitored obligation.</h2>
+
+    <div class="mt-12 grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <!-- step -->
+      <div class="bg-white border border-line rounded-xl p-5">
+        <div class="w-9 h-9 rounded-lg border border-line flex items-center justify-center">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2B4ACB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        </div>
+        <p class="font-mono text-[11px] text-ok mt-4 tracking-wider">STEP 1 · LIVE</p>
+        <p class="font-medium text-[15px] mt-1.5">Add documents</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">Drag in PDFs and Word files. Each one is parsed page by page so answers can point back to a page you can turn to.</p>
+      </div>
+      <div class="bg-white border border-line rounded-xl p-5">
+        <div class="w-9 h-9 rounded-lg border border-line flex items-center justify-center">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2B4ACB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <p class="font-mono text-[11px] text-ok mt-4 tracking-wider">STEP 2 · LIVE</p>
+        <p class="font-medium text-[15px] mt-1.5">Ask in plain language</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">"What do we get if Acme is late?" Answers come only from your documents, and cite the document and page behind each one.</p>
+      </div>
+      <div class="bg-white border border-line rounded-xl p-5">
+        <div class="w-9 h-9 rounded-lg border border-line flex items-center justify-center">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B94A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 10h10M4 15h7"/><rect x="14" y="13" width="7" height="7" rx="1.5"/></svg>
+        </div>
+        <p class="font-mono text-[11px] text-faint mt-4 tracking-wider">STEP 3 · NEXT</p>
+        <p class="font-medium text-[15px] mt-1.5">Obligations are extracted</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">Each clause becomes a structured record — type, trigger, value, party, date — with a link back to its page.</p>
+      </div>
+      <div class="bg-white border border-line rounded-xl p-5">
+        <div class="w-9 h-9 rounded-lg border border-line flex items-center justify-center">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B94A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>
+        </div>
+        <p class="font-mono text-[11px] text-faint mt-4 tracking-wider">STEP 4 · NEXT</p>
+        <p class="font-medium text-[15px] mt-1.5">Reviewed once, then stored</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">Low-confidence items are flagged for a person to confirm. After that the workspace is the record.</p>
+      </div>
+      <div class="bg-white border border-line rounded-xl p-5">
+        <div class="w-9 h-9 rounded-lg border border-line flex items-center justify-center">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B94A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        </div>
+        <p class="font-mono text-[11px] text-faint mt-4 tracking-wider">STEP 5 · NEXT</p>
+        <p class="font-medium text-[15px] mt-1.5">Alerts, then a draft letter</p>
+        <p class="mt-1.5 text-[13.5px] text-muted leading-[1.55]">You're notified before a window closes, with a claim or notice letter ready to review and send.</p>
+      </div>
+    </div>
+    <p class="mt-6 text-[13px] text-faint">Digital PDFs and Word files are read directly. Scanned pages need OCR, which is not in this build.</p>
+  </div>
+</section>
+
+<!-- ── 4. Workspace (live) ────────────────────────────────── -->
+<section id="workspace" class="border-b border-line">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <p class="eyebrow mb-4">Your workspace</p>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[24ch] leading-[1.12]">Ask the contract instead of reopening it.</h2>
+    <p class="mt-4 text-[16.5px] text-muted max-w-[58ch] leading-[1.6]">Add your own PDFs and Word documents, then ask. Every answer is drawn only from what you've uploaded — if the documents don't cover it, it says so.</p>
+
+    <div class="mt-10 border border-line rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(20,24,31,.04),0_12px_32px_-16px_rgba(20,24,31,.12)]">
+      <div class="grid lg:grid-cols-[268px_1fr]">
+
+        <!-- file rail -->
+        <aside class="border-b lg:border-b-0 lg:border-r border-line bg-surface p-4">
+          <div class="flex items-baseline justify-between mb-3">
+            <p class="eyebrow" id="docCount">Documents</p>
+            <button id="clearScope" type="button" class="hidden text-[11.5px] font-mono text-accent hover:underline">All</button>
+          </div>
+
+          <ul class="space-y-1.5" id="fileList"></ul>
+
+          <p id="railEmpty" class="text-[13px] text-muted leading-[1.55] py-2">No documents yet. Add a contract, MOU, quotation or purchase order to begin.</p>
+
+          <label id="dropzone"
+                 class="dropzone mt-4 block border border-dashed border-line rounded-lg py-5 text-center cursor-pointer hover:border-ink transition-colors">
+            <input id="fileInput" type="file" multiple accept=".pdf,.docx" class="sr-only">
+            <span class="block text-[12.5px] text-muted">Drop files here, or <span class="text-accent">browse</span></span>
+            <span class="block font-mono text-[10.5px] text-faint mt-1">PDF or DOCX · max 25 MB</span>
+          </label>
+
+          <div id="uploadStatus" class="mt-3 space-y-1.5"></div>
+        </aside>
+
+        <!-- chat -->
+        <div class="flex flex-col min-h-[520px]">
+          <div class="px-5 h-12 border-b border-line flex items-center justify-between gap-3">
+            <p class="text-[13.5px] font-medium">Workspace assistant</p>
+            <p class="font-mono text-[11px] text-faint truncate" id="scopeLabel">No documents indexed</p>
+          </div>
+
+          <div id="chatLog" class="flex-1 overflow-y-auto px-5 py-5 space-y-4 max-h-[440px]"></div>
+
+          <div class="border-t border-line p-4">
+            <div id="suggestions" class="flex flex-wrap gap-2 mb-3"></div>
+            <form id="chatForm" class="flex gap-2">
+              <input id="chatInput" type="text" autocomplete="off" placeholder="Ask about a contract…"
+                class="flex-1 text-[14px] border border-line rounded-md px-3 py-2.5 placeholder:text-faint focus:border-accent focus:outline-none">
+              <button id="askButton" type="submit" class="bg-ink text-white text-[14px] font-medium px-4 rounded-md hover:bg-black transition-colors disabled:opacity-40">Ask</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 5. Obligation dashboard ────────────────────────────── -->
+<section id="obligations" class="border-b border-line bg-surface">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <div class="flex flex-wrap items-center gap-3 mb-4">
+      <p class="eyebrow">Obligation register</p>
+      <span class="font-mono text-[10.5px] text-faint border border-line rounded px-1.5 py-0.5">Illustrative · not in this build</span>
+    </div>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[26ch] leading-[1.12]">Every commitment in one register, not twelve PDFs.</h2>
+
+    <div class="mt-10 bg-white border border-line rounded-xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-[13.5px] min-w-[880px]">
+          <thead>
+            <tr class="bg-surface border-b border-line text-left">
+              <th class="font-mono text-[11px] uppercase tracking-wider text-faint font-medium px-5 py-3">Type</th>
+              <th class="font-mono text-[11px] uppercase tracking-wider text-faint font-medium px-5 py-3">Vendor</th>
+              <th class="font-mono text-[11px] uppercase tracking-wider text-faint font-medium px-5 py-3">Status</th>
+              <th class="font-mono text-[11px] uppercase tracking-wider text-faint font-medium px-5 py-3">Due</th>
+              <th class="font-mono text-[11px] uppercase tracking-wider text-faint font-medium px-5 py-3">Priority</th>
+              <th class="font-mono text-[11px] uppercase tracking-wider text-faint font-medium px-5 py-3">Source</th>
+            </tr>
+          </thead>
+          <tbody id="obligationRows" class="divide-y divide-line"></tbody>
+        </table>
+      </div>
+    </div>
+    <p class="mt-4 font-mono text-[11.5px] text-faint">Sample rows · extraction lands in the next phase</p>
+  </div>
+</section>
+
+<!-- ── 6. Alerts ──────────────────────────────────────────── -->
+<section id="alerts" class="border-b border-line">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <div class="flex flex-wrap items-center gap-3 mb-4">
+      <p class="eyebrow">Alerts</p>
+      <span class="font-mono text-[10.5px] text-faint border border-line rounded px-1.5 py-0.5">Illustrative · not in this build</span>
+    </div>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[24ch] leading-[1.12]">Told before the window closes, not after.</h2>
+    <p class="mt-4 text-[16.5px] text-muted max-w-[58ch] leading-[1.6]">Delivered by email, Slack or WhatsApp. Each one carries the clause it came from and the action it needs.</p>
+
+    <div class="mt-10 grid md:grid-cols-2 gap-4">
+      <div class="border border-line rounded-xl p-5 flex gap-4">
+        <span class="w-2 h-2 rounded-full bg-bad mt-2 shrink-0"></span>
+        <div class="flex-1">
+          <p class="font-medium text-[15px]">Acme delivery overdue by 3 days</p>
+          <p class="mt-1.5 text-[14px] text-muted leading-[1.6]">Shipment 43 was due 19 July. At 5 business days late, a 2% invoice credit becomes claimable — $1,684 on this shipment.</p>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <span class="font-mono text-[11px] text-faint border border-line rounded px-2 py-1">Clause 7.3 · p.18</span>
+            <span class="text-[13px] font-medium text-faint">Draft claim letter</span>
+          </div>
+        </div>
+      </div>
+      <div class="border border-line rounded-xl p-5 flex gap-4">
+        <span class="w-2 h-2 rounded-full bg-warn mt-2 shrink-0"></span>
+        <div class="flex-1">
+          <p class="font-medium text-[15px]">Renewal notice required in 12 days</p>
+          <p class="mt-1.5 text-[14px] text-muted leading-[1.6]">Vertex IT renews automatically for 12 months unless written notice is given by 2 November. After that the term is locked.</p>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <span class="font-mono text-[11px] text-faint border border-line rounded px-2 py-1">Clause 12.1 · p.31</span>
+            <span class="text-[13px] font-medium text-faint">Draft notice</span>
+          </div>
+        </div>
+      </div>
+      <div class="border border-line rounded-xl p-5 flex gap-4">
+        <span class="w-2 h-2 rounded-full bg-ok mt-2 shrink-0"></span>
+        <div class="flex-1">
+          <p class="font-medium text-[15px]">620 units from the next discount tier</p>
+          <p class="mt-1.5 text-[14px] text-muted leading-[1.6]">Q3 volume is 4,380 units. Crossing 5,000 before 30 September applies 4% retroactively to the whole quarter — $9,900 back.</p>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <span class="font-mono text-[11px] text-faint border border-line rounded px-2 py-1">Annex A · p.9</span>
+            <span class="text-[13px] font-medium text-faint">Notify procurement</span>
+          </div>
+        </div>
+      </div>
+      <div class="border border-line rounded-xl p-5 flex gap-4">
+        <span class="w-2 h-2 rounded-full bg-warn mt-2 shrink-0"></span>
+        <div class="flex-1">
+          <p class="font-medium text-[15px]">Insurance certificate expires in 21 days</p>
+          <p class="mt-1.5 text-[14px] text-muted leading-[1.6]">Northbridge must keep $2M cargo cover for the term. The certificate on file lapses 12 August — request a renewed copy.</p>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <span class="font-mono text-[11px] text-faint border border-line rounded px-2 py-1">Clause 9.4 · p.7</span>
+            <span class="text-[13px] font-medium text-faint">Request document</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 7. Document viewer / extraction ────────────────────── -->
+<section id="extraction" class="border-b border-line bg-surface">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <div class="flex flex-wrap items-center gap-3 mb-4">
+      <p class="eyebrow">Traceability</p>
+      <span class="font-mono text-[10.5px] text-faint border border-line rounded px-1.5 py-0.5">Extraction panel illustrative · citations are live</span>
+    </div>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[26ch] leading-[1.12]">Every field points back to the sentence it came from.</h2>
+    <p class="mt-4 text-[16.5px] text-muted max-w-[58ch] leading-[1.6]">Nothing is asserted without a source. If the system says you're owed money, you can see the clause that says so in one click.</p>
+
+    <div class="mt-10 grid lg:grid-cols-[1.15fr_1fr] gap-5 items-start">
+
+      <!-- page mockup -->
+      <div class="bg-white border border-line rounded-xl overflow-hidden">
+        <div class="flex items-center justify-between px-5 h-11 border-b border-line bg-white">
+          <p class="font-mono text-[11.5px] text-muted">Supplier Agreement — Acme Logistics.pdf</p>
+          <p class="font-mono text-[11.5px] text-faint">Page 18 of 34</p>
+        </div>
+        <div class="p-7 md:p-9 text-[13.5px] leading-[1.95] text-ink/90">
+          <p class="font-mono text-[11.5px] tracking-wider text-faint mb-4">7. DELIVERY AND PERFORMANCE</p>
+          <p class="text-muted"><span class="font-mono text-[12px] mr-1.5">7.1</span> The Supplier shall deliver the Goods in accordance with the delivery schedule set out in Schedule 2, time being of the essence.</p>
+          <p class="text-muted mt-3"><span class="font-mono text-[12px] mr-1.5">7.2</span> The Supplier shall notify the Buyer in writing within twenty-four (24) hours of becoming aware of any anticipated delay.</p>
+          <p class="mt-3"><span class="font-mono text-[12px] mr-1.5">7.3</span> <span class="clause-mark">Where any delivery exceeds five (5) business days beyond the scheduled delivery date, the Supplier shall compensate the Buyer an amount equal to two per cent (2%) of the invoice value of the affected consignment</span>, such amount to be credited against the next invoice issued.</p>
+          <p class="text-muted mt-3"><span class="font-mono text-[12px] mr-1.5">7.4</span> Compensation payable under Clause 7.3 shall not exceed ten per cent (10%) of the aggregate invoice value in any calendar quarter.</p>
+          <p class="text-muted mt-3"><span class="font-mono text-[12px] mr-1.5">7.5</span> Nothing in this Clause 7 shall limit the Buyer's right to terminate under Clause 14 for persistent failure to deliver.</p>
+        </div>
+      </div>
+
+      <!-- extraction panel -->
+      <div class="bg-white border border-line rounded-xl">
+        <div class="flex items-center justify-between px-5 h-11 border-b border-line">
+          <p class="text-[13.5px] font-medium">Extracted obligation</p>
+          <span class="font-mono text-[11px] text-ok border border-ok/25 bg-ok/5 rounded px-2 py-0.5">97% confidence</span>
+        </div>
+        <dl class="divide-y divide-line">
+          <div class="px-5 py-3.5 grid grid-cols-[104px_1fr] gap-3 items-baseline">
+            <dt class="font-mono text-[11px] uppercase tracking-wider text-faint">Type</dt>
+            <dd class="text-[14px]">Compensation — late delivery</dd>
+          </div>
+          <div class="px-5 py-3.5 grid grid-cols-[104px_1fr] gap-3 items-baseline">
+            <dt class="font-mono text-[11px] uppercase tracking-wider text-faint">Trigger</dt>
+            <dd class="text-[14px]">Delivery more than 5 business days late</dd>
+          </div>
+          <div class="px-5 py-3.5 grid grid-cols-[104px_1fr] gap-3 items-baseline">
+            <dt class="font-mono text-[11px] uppercase tracking-wider text-faint">Value</dt>
+            <dd class="text-[14px]">2% of consignment invoice value</dd>
+          </div>
+          <div class="px-5 py-3.5 grid grid-cols-[104px_1fr] gap-3 items-baseline">
+            <dt class="font-mono text-[11px] uppercase tracking-wider text-faint">Cap</dt>
+            <dd class="text-[14px]">10% of quarterly invoice value <span class="text-faint">· from 7.4</span></dd>
+          </div>
+          <div class="px-5 py-3.5 grid grid-cols-[104px_1fr] gap-3 items-baseline">
+            <dt class="font-mono text-[11px] uppercase tracking-wider text-faint">Owed by</dt>
+            <dd class="text-[14px]">Acme Logistics</dd>
+          </div>
+          <div class="px-5 py-3.5 grid grid-cols-[104px_1fr] gap-3 items-baseline">
+            <dt class="font-mono text-[11px] uppercase tracking-wider text-faint">Settlement</dt>
+            <dd class="text-[14px]">Credit against next invoice</dd>
+          </div>
+          <div class="px-5 py-3.5 grid grid-cols-[104px_1fr] gap-3 items-baseline">
+            <dt class="font-mono text-[11px] uppercase tracking-wider text-faint">Source</dt>
+            <dd class="font-mono text-[12px] text-accent">Clause 7.3 · p.18 · linked to 7.4</dd>
+          </div>
+        </dl>
+        <div class="px-5 py-4 border-t border-line bg-surface flex items-center justify-between gap-3 rounded-b-xl">
+          <p class="text-[13px] text-muted">Sample extraction · not produced by this build</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="mt-6 text-[14px] text-muted max-w-[70ch] leading-[1.6]">Clause 7.3 alone is incomplete — the cap that limits it sits in 7.4, and the schedule it depends on is 6 pages earlier. Reading a clause in isolation is how the wrong number reaches finance. It is also why the assistant reads whole documents rather than retrieved fragments.</p>
+  </div>
+</section>
+
+<!-- ── 8. Why AI ──────────────────────────────────────────── -->
+<section class="bg-ink text-white">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <p class="eyebrow mb-4" style="color:#6E7A8C">What the model actually does</p>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[26ch] leading-[1.12]">Seven jobs, none of them magic.</h2>
+
+    <div class="mt-12 grid md:grid-cols-2 gap-x-14 gap-y-px">
+      <div class="border-t border-white/10 py-5">
+        <p class="font-medium text-[15.5px]">Reads legal phrasing</p>
+        <p class="mt-1.5 text-[14px] text-white/55 leading-[1.6]">"Notwithstanding", "provided that", "save as set out in Schedule 3" — conditional language that keyword search cannot resolve.</p>
+      </div>
+      <div class="border-t border-white/10 py-5">
+        <p class="font-medium text-[15.5px]">Turns clauses into records</p>
+        <p class="mt-1.5 text-[14px] text-white/55 leading-[1.6]">A paragraph becomes a typed row with a trigger, a value, a party and a date that a calendar and a query can act on.</p>
+      </div>
+      <div class="border-t border-white/10 py-5">
+        <p class="font-medium text-[15.5px]">Connects related documents</p>
+        <p class="mt-1.5 text-[14px] text-white/55 leading-[1.6]">Links the purchase order to the master agreement that governs it, and the amendment that changed the delivery window.</p>
+      </div>
+      <div class="border-t border-white/10 py-5">
+        <p class="font-medium text-[15.5px]">Retrieves the exact clause</p>
+        <p class="mt-1.5 text-[14px] text-white/55 leading-[1.6]">Answers are assembled from specific passages, not summarised impressions of a document.</p>
+      </div>
+      <div class="border-t border-white/10 py-5">
+        <p class="font-medium text-[15.5px]">Answers questions as asked</p>
+        <p class="mt-1.5 text-[14px] text-white/55 leading-[1.6]">Operations staff ask "can we still claim this?" — not "SELECT * FROM obligations".</p>
+      </div>
+      <div class="border-t border-white/10 py-5">
+        <p class="font-medium text-[15.5px]">Writes the follow-up</p>
+        <p class="mt-1.5 text-[14px] text-white/55 leading-[1.6]">Claim notices and renewal letters drafted with the real dates, amounts and clause references already filled in.</p>
+      </div>
+      <div class="border-t border-white/10 py-5 md:col-span-2">
+        <p class="font-medium text-[15.5px]">Keeps its work checkable</p>
+        <p class="mt-1.5 text-[14px] text-white/55 leading-[1.6]">Every answer carries a citation to the document and page it came from, and citations that cannot be matched to a real page are withheld rather than shown. Anything the documents don't cover comes back as "not covered" — not as a plausible guess.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 9. Integrations ────────────────────────────────────── -->
+<section class="border-b border-line">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <p class="eyebrow mb-4">On the roadmap</p>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[24ch] leading-[1.12]">Where obligations should surface next.</h2>
+    <p class="mt-4 text-[16.5px] text-muted max-w-[58ch] leading-[1.6]">Not yet connected. Ordered by how often the people we've spoken to said they'd want it.</p>
+
+    <div class="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3" id="integrationGrid"></div>
+  </div>
+</section>
+
+<!-- ── Footer ─────────────────────────────────────────────── -->
+<footer>
+  <div class="max-w-shell mx-auto px-5 py-14">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-8">
+      <div>
+        <div class="flex items-center gap-2.5">
+          <span class="w-6 h-6 rounded-[5px] bg-ink flex items-center justify-center">
+            <span class="w-2.5 h-[2px] bg-marker block"></span>
+          </span>
+          <span class="font-semibold text-[15px] h-tight">Provision</span>
+        </div>
+        <p class="mt-3 text-[13.5px] text-muted max-w-[38ch] leading-[1.6]">Contract obligations, extracted once and monitored until they matter.</p>
+      </div>
+      <div class="flex gap-10 text-[13.5px]">
+        <div>
+          <p class="eyebrow mb-3">Contact</p>
+          <a href="mailto:hello@provision.app" class="block text-muted hover:text-ink transition-colors">hello@provision.app</a>
+        </div>
+        <div>
+          <p class="eyebrow mb-3">Elsewhere</p>
+          <a href="#" class="block text-muted hover:text-ink transition-colors">GitHub</a>
+          <a href="#" class="block text-muted hover:text-ink transition-colors mt-1">LinkedIn</a>
+        </div>
+      </div>
+    </div>
+    <div class="fade-line mt-10 mb-5"></div>
+    <p class="font-mono text-[11.5px] text-faint">Not a legal service · answers are drawn from your uploaded documents and should be checked against the clause cited</p>
+  </div>
+</footer>
+
+<script>
+/* ────────────────────────────────────────────────────────────
+   Workspace — real. Upload, list and ask all hit the FastAPI
+   backend; nothing in this section is canned.
+   ──────────────────────────────────────────────────────────── */
+
+const API = {
+  documents: '/api/documents',
+  ask:       '/api/ask'
+};
+
+const state = {
+  documents: [],
+  selected: new Set(),   // empty = every document is searched
+  busy: false,
+  uploading: false
+};
+
+const el = {
+  list:        document.getElementById('fileList'),
+  railEmpty:   document.getElementById('railEmpty'),
+  docCount:    document.getElementById('docCount'),
+  clearScope:  document.getElementById('clearScope'),
+  dropzone:    document.getElementById('dropzone'),
+  fileInput:   document.getElementById('fileInput'),
+  uploadStatus:document.getElementById('uploadStatus'),
+  scopeLabel:  document.getElementById('scopeLabel'),
+  log:         document.getElementById('chatLog'),
+  form:        document.getElementById('chatForm'),
+  input:       document.getElementById('chatInput'),
+  askButton:   document.getElementById('askButton'),
+  suggestions: document.getElementById('suggestions')
+};
+
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function humanSize(bytes){
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+/* Read {"error": "..."} from a failed response, whatever went wrong. */
+async function errorFrom(response){
+  try {
+    const body = await response.json();
+    if (body && body.error) return body.error;
+    if (body && body.detail) return typeof body.detail === 'string' ? body.detail : 'That request could not be completed.';
+  } catch (_) { /* non-JSON response */ }
+  return `Request failed (${response.status}).`;
+}
+
+/* ── Document rail ── */
+
+const FILE_ICON = `<svg class="mt-0.5 shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B94A0" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>`;
+
+async function loadDocuments(){
+  try {
+    const response = await fetch(API.documents);
+    if (!response.ok) throw new Error(await errorFrom(response));
+    state.documents = await response.json();
+  } catch (err) {
+    state.documents = [];
+    showUploadNote(err.message || 'Could not load documents.', true);
+  }
+  // Drop selections for documents that no longer exist.
+  const ids = new Set(state.documents.map(d => d.id));
+  state.selected.forEach(id => { if (!ids.has(id)) state.selected.delete(id); });
+  renderDocuments();
+}
+
+function renderDocuments(){
+  const docs = state.documents;
+  el.docCount.textContent = docs.length ? `Documents · ${docs.length}` : 'Documents';
+  el.railEmpty.classList.toggle('hidden', docs.length > 0);
+  el.clearScope.classList.toggle('hidden', state.selected.size === 0);
+
+  el.list.innerHTML = docs.map(doc => {
+    const on = state.selected.has(doc.id);
+    return `
+    <li class="doc-row flex gap-2.5 items-start bg-white border rounded-lg px-3 py-2.5 transition-colors ${on ? 'border-accent ring-1 ring-accent/20' : 'border-line hover:border-faint'}"
+        data-id="${esc(doc.id)}">
+      ${FILE_ICON}
+      <button type="button" class="doc-select min-w-0 flex-1 text-left" aria-pressed="${on}">
+        <p class="text-[13px] font-medium leading-tight break-words">${esc(doc.filename)}</p>
+        <p class="font-mono text-[10.5px] text-faint mt-1">${doc.page_count} page${doc.page_count === 1 ? '' : 's'} · ${humanSize(doc.size_bytes)}</p>
+      </button>
+      <button type="button" class="doc-remove shrink-0 text-faint hover:text-bad transition-colors" title="Remove document" aria-label="Remove ${esc(doc.filename)}">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </li>`;
+  }).join('');
+
+  el.list.querySelectorAll('.doc-select').forEach(button => {
+    button.addEventListener('click', () => toggleSelection(button.closest('li').dataset.id));
+  });
+  el.list.querySelectorAll('.doc-remove').forEach(button => {
+    button.addEventListener('click', () => removeDocument(button.closest('li').dataset.id));
+  });
+
+  renderScope();
+  renderSuggestions();
+}
+
+function renderScope(){
+  const total = state.documents.length;
+  if (!total) { el.scopeLabel.textContent = 'No documents indexed'; return; }
+  if (state.selected.size === 0) {
+    const pages = state.documents.reduce((n, d) => n + d.page_count, 0);
+    el.scopeLabel.textContent = `${total} document${total === 1 ? '' : 's'} · ${pages} pages indexed`;
+    return;
+  }
+  const names = state.documents.filter(d => state.selected.has(d.id)).map(d => d.filename);
+  el.scopeLabel.textContent = names.length === 1 ? `Asking: ${names[0]}` : `Asking: ${names.length} documents`;
+}
+
+function toggleSelection(id){
+  if (state.selected.has(id)) state.selected.delete(id); else state.selected.add(id);
+  renderDocuments();
+}
+
+/* "All" — drop the scope and go back to searching every document. */
+el.clearScope.addEventListener('click', () => {
+  state.selected.clear();
+  renderDocuments();
+});
+
+async function removeDocument(id){
+  const doc = state.documents.find(d => d.id === id);
+  if (doc && !confirm(`Remove ${doc.filename} from the workspace?`)) return;
+  try {
+    const response = await fetch(`${API.documents}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error(await errorFrom(response));
+  } catch (err) {
+    showUploadNote(err.message || 'Could not remove that document.', true);
+  }
+  state.selected.delete(id);
+  await loadDocuments();
+}
+
+/* ── Upload ── */
+
+function showUploadNote(message, isError){
+  const note = document.createElement('p');
+  note.className = `text-[11.5px] leading-[1.5] ${isError ? 'text-bad' : 'text-muted'}`;
+  note.textContent = message;
+  el.uploadStatus.appendChild(note);
+  setTimeout(() => note.remove(), isError ? 12000 : 4000);
+}
+
+async function uploadFiles(fileList){
+  const files = Array.from(fileList || []);
+  if (!files.length || state.uploading) return;
+
+  state.uploading = true;
+  const pending = document.createElement('p');
+  pending.className = 'font-mono text-[11px] text-faint';
+  pending.textContent = `Reading ${files.length} file${files.length === 1 ? '' : 's'}…`;
+  el.uploadStatus.appendChild(pending);
+
+  const form = new FormData();
+  files.forEach(file => form.append('files', file));
+
+  try {
+    const response = await fetch(API.documents, { method: 'POST', body: form });
+    if (!response.ok) throw new Error(await errorFrom(response));
+    const body = await response.json();
+    (body.results || []).forEach(result => {
+      if (!result.ok) showUploadNote(result.error, true);
+    });
+    const added = (body.documents || []).length;
+    if (added) showUploadNote(`Added ${added} document${added === 1 ? '' : 's'}.`, false);
+    await loadDocuments();
+  } catch (err) {
+    showUploadNote(err.message || 'Upload failed.', true);
+  } finally {
+    pending.remove();
+    state.uploading = false;
+    el.fileInput.value = '';
+  }
+}
+
+el.fileInput.addEventListener('change', event => uploadFiles(event.target.files));
+
+['dragenter','dragover'].forEach(type =>
+  el.dropzone.addEventListener(type, event => { event.preventDefault(); el.dropzone.classList.add('is-over'); }));
+['dragleave','drop'].forEach(type =>
+  el.dropzone.addEventListener(type, event => { event.preventDefault(); el.dropzone.classList.remove('is-over'); }));
+el.dropzone.addEventListener('drop', event => uploadFiles(event.dataTransfer.files));
+
+/* ── Chat ── */
+
+function scrollLog(){ el.log.scrollTop = el.log.scrollHeight; }
+
+function userBubble(text){
+  const node = document.createElement('div');
+  node.className = 'msg-in flex justify-end';
+  node.innerHTML = `<div class="bg-ink text-white text-[14px] leading-[1.55] rounded-lg rounded-br-sm px-3.5 py-2.5 max-w-[80%]">${esc(text)}</div>`;
+  el.log.appendChild(node); scrollLog();
+}
+
+function typingBubble(){
+  const node = document.createElement('div');
+  node.className = 'msg-in';
+  node.innerHTML = `<div class="dot-typing border border-line rounded-lg px-3.5 py-3 inline-block"><span></span><span></span><span></span></div>`;
+  el.log.appendChild(node); scrollLog();
+  return node;
+}
+
+/* Answers arrive as plain prose. Render blank-line-separated paragraphs, and
+   turn a run of dashed/numbered lines into the same list treatment the rest of
+   the page uses. */
+function renderBody(text){
+  return String(text || '').split(/\n{2,}/).map(block => {
+    const lines = block.split('\n').map(line => line.trim()).filter(Boolean);
+    const isList = lines.length > 1 && lines.every(line => /^([-–•*]|\d+[.)])\s+/.test(line));
+    if (isList) {
+      return `<ul class="space-y-1.5 border-l-2 border-line pl-3">${
+        lines.map(line => `<li class="text-[13.5px] text-muted leading-[1.5]">${esc(line.replace(/^([-–•*]|\d+[.)])\s+/, ''))}</li>`).join('')
+      }</ul>`;
+    }
+    return `<p class="text-[14px] leading-[1.6]">${esc(lines.join(' '))}</p>`;
+  }).join('');
+}
+
+/* On a "not covered" answer the model often still points at the nearest
+   passages. Those are worth showing, but they are not sources for a claim —
+   so they are labelled for what they are. */
+function renderCitations(citations, answered){
+  if (!citations || !citations.length) return '';
+  return `
+    <div class="pt-3 border-t border-line space-y-2">
+      <p class="eyebrow">${answered === false ? 'Closest related passages' : 'Source'}</p>
+      ${citations.map(citation => `
+        <div>
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span class="font-mono text-[11.5px] text-accent">${esc(citation.document)}</span>
+            ${citation.clause ? `<span class="font-mono text-[11px] text-faint">${esc(citation.clause)}</span>` : ''}
+            <span class="font-mono text-[11px] text-faint">p.${esc(citation.page)}</span>
+          </div>
+          ${citation.quote ? `<p class="mt-1 text-[12.5px] text-muted leading-[1.5] border-l-2 border-line pl-3">“${esc(citation.quote)}”</p>` : ''}
+        </div>`).join('')}
+    </div>`;
+}
+
+function answerBubble(data){
+  const notCovered = data.answered === false;
+  const header = notCovered
+    ? `<p class="eyebrow" style="color:#B45309">Not covered in these documents</p>`
+    : '';
+  const scope = data.scope_note
+    ? `<p class="text-[12.5px] text-warn leading-[1.5]">${esc(data.scope_note)}</p>`
+    : '';
+  const searched = (data.documents_searched && data.documents_searched.length && !data.citations.length && !notCovered)
+    ? `<p class="font-mono text-[11px] text-faint">Read: ${esc(data.documents_searched.join(' · '))}</p>`
+    : '';
+
+  const node = document.createElement('div');
+  node.className = 'msg-in';
+  node.innerHTML = `<div class="border border-line rounded-lg rounded-bl-sm p-4 space-y-3 max-w-[92%]">${header}${renderBody(data.answer)}${scope}${renderCitations(data.citations, data.answered)}${searched}</div>`;
+  el.log.appendChild(node); scrollLog();
+}
+
+function noticeBubble(message, tone){
+  const colour = tone === 'error' ? 'text-bad' : 'text-muted';
+  const node = document.createElement('div');
+  node.className = 'msg-in';
+  node.innerHTML = `<div class="border border-line rounded-lg rounded-bl-sm p-4 max-w-[92%]"><p class="text-[13.5px] leading-[1.6] ${colour}">${esc(message)}</p></div>`;
+  el.log.appendChild(node); scrollLog();
+}
+
+async function ask(question){
+  question = (question || '').trim();
+  if (state.busy || !question) return;
+
+  state.busy = true;
+  el.askButton.disabled = true;
+  userBubble(question);
+  const typing = typingBubble();
+
+  try {
+    const response = await fetch(API.ask, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question,
+        document_ids: state.selected.size ? Array.from(state.selected) : null
+      })
+    });
+    typing.remove();
+    if (!response.ok) { noticeBubble(await errorFrom(response), 'error'); return; }
+    answerBubble(await response.json());
+  } catch (err) {
+    typing.remove();
+    noticeBubble('Could not reach the server. Is it still running?', 'error');
+  } finally {
+    state.busy = false;
+    el.askButton.disabled = false;
+  }
+}
+
+/* Starter questions — generic, because the documents are the user's own. */
+const STARTERS = [
+  "What are the delivery commitments?",
+  "What penalties or compensation can we claim?",
+  "What discounts or price tiers apply?",
+  "When does this agreement renew, and what notice is required?",
+  "What are our obligations under this contract?"
+];
+
+function renderSuggestions(){
+  const enabled = state.documents.length > 0;
+  el.suggestions.innerHTML = STARTERS.map(question => `
+    <button type="button" ${enabled ? '' : 'disabled'}
+      class="text-[12.5px] border rounded-full px-3 py-1.5 transition-colors ${enabled
+        ? 'text-muted border-line hover:border-ink hover:text-ink'
+        : 'text-faint border-line opacity-50 cursor-not-allowed'}">${esc(question)}</button>`).join('');
+  el.suggestions.querySelectorAll('button').forEach(button => {
+    button.addEventListener('click', () => ask(button.textContent));
+  });
+}
+
+el.form.addEventListener('submit', event => {
+  event.preventDefault();
+  const question = el.input.value;
+  el.input.value = '';
+  ask(question);
+});
+
+/* ── Opening state ── */
+
+(async function start(){
+  await loadDocuments();
+  try {
+    const config = await (await fetch('/api/config')).json();
+    if (!config.llm_configured) {
+      noticeBubble('No OpenAI API key is configured, so questions cannot be answered yet. Add OPENAI_API_KEY to the .env file in the project root and restart the server. Uploading documents works without it.', 'error');
+    }
+  } catch (_) { /* health check is best-effort */ }
+
+  if (state.documents.length) {
+    noticeBubble('Ready. Ask about delivery dates, penalties, discounts or renewals — answers come only from your uploaded documents, with the page cited. Select a document in the rail to narrow a question to it.');
+  } else {
+    noticeBubble('Add a contract, MOU, quotation or purchase order to begin. PDF and Word files are read directly; scanned pages are not supported yet.');
+  }
+})();
+
+/* ────────────────────────────────────────────────────────────
+   Illustrative sections below — sample data for the register
+   and integrations. Not produced by the backend.
+   ──────────────────────────────────────────────────────────── */
+
+const OBLIGATIONS = [
+  { type:"Late delivery compensation", vendor:"Acme Logistics", status:"Claimable", tone:"bad",  due:"19 Jul 2026", prio:"High",   src:"Clause 7.3 · p.18" },
+  { type:"Renewal notice",             vendor:"Vertex IT",      status:"Action needed", tone:"warn", due:"03 Aug 2026", prio:"High",   src:"Clause 8.1 · p.14" },
+  { type:"Insurance certificate",      vendor:"Northbridge",    status:"Action needed", tone:"warn", due:"12 Aug 2026", prio:"Medium", src:"Clause 9.4 · p.7"  },
+  { type:"Discount threshold",         vendor:"Acme Logistics", status:"Monitoring",    tone:"ok",   due:"30 Sep 2026", prio:"Medium", src:"Annex A · p.9"     },
+  { type:"SLA response time",          vendor:"Vertex IT",      status:"On track",      tone:"ok",   due:"Continuous",  prio:"Low",    src:"Clause 3.2 · p.6"  },
+  { type:"Quarterly audit",            vendor:"Northbridge",    status:"Scheduled",     tone:"neutral", due:"15 Oct 2026", prio:"Low", src:"Clause 11.5 · p.10" }
+];
+
+const INTEGRATIONS = ["SAP","Oracle NetSuite","Microsoft Teams","Slack","Google Calendar","Outlook & email","SharePoint","QuickBooks"];
+
+const toneMap = {
+  bad:  "text-bad bg-bad/5 border-bad/20",
+  warn: "text-warn bg-warn/5 border-warn/20",
+  ok:   "text-ok bg-ok/5 border-ok/20",
+  neutral: "text-muted bg-surface border-line"
+};
+
+document.getElementById('obligationRows').innerHTML = OBLIGATIONS.map(o => `
+  <tr class="hover:bg-surface/60 transition-colors">
+    <td class="px-5 py-3.5 font-medium">${o.type}</td>
+    <td class="px-5 py-3.5 text-muted">${o.vendor}</td>
+    <td class="px-5 py-3.5">
+      <span class="inline-block font-mono text-[11px] border rounded px-2 py-0.5 ${toneMap[o.tone]}">${o.status}</span>
+    </td>
+    <td class="px-5 py-3.5 font-mono text-[12.5px] text-muted">${o.due}</td>
+    <td class="px-5 py-3.5 text-muted">${o.prio}</td>
+    <td class="px-5 py-3.5 font-mono text-[12px] text-accent">${o.src}</td>
+  </tr>`).join('');
+
+document.getElementById('integrationGrid').innerHTML = INTEGRATIONS.map(name => `
+  <div class="border border-line rounded-xl px-4 py-5 flex items-center justify-between gap-3 bg-white">
+    <span class="text-[14px] text-muted">${name}</span>
+    <span class="font-mono text-[10.5px] text-faint border border-line rounded px-1.5 py-0.5">Planned</span>
+  </div>`).join('');
+</script>
+</body>
+</html>
