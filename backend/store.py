@@ -25,6 +25,34 @@ def init_db() -> None:
     """Create the data directories and tables. Safe to call on every startup."""
     ensure_directories()
     SQLModel.metadata.create_all(engine)
+    _migrate_add_lifecycle_columns()
+
+
+def _migrate_add_lifecycle_columns() -> None:
+    """Add the Phase 1.7 lifecycle columns to a pre-existing database.
+
+    create_all() only creates missing TABLES, never missing columns, so a
+    database written before the lifecycle existed would otherwise fail every
+    query with "no such column". Idempotent: checks first, adds only what is
+    absent, and leaves all existing rows as "active".
+    """
+    from sqlalchemy import text
+
+    wanted = {
+        "status": "VARCHAR DEFAULT 'active'",
+        "finalized_at": "DATETIME",
+    }
+    with engine.begin() as connection:
+        existing = {
+            row[1] for row in connection.execute(text("PRAGMA table_info(documents)"))
+        }
+        for column, ddl in wanted.items():
+            if column not in existing:
+                connection.execute(text(f"ALTER TABLE documents ADD COLUMN {column} {ddl}"))
+        if "status" not in existing:
+            connection.execute(
+                text("UPDATE documents SET status = 'active' WHERE status IS NULL")
+            )
 
 
 def get_session() -> Session:
@@ -109,10 +137,31 @@ def delete_document(document_id: str) -> bool:
 # ── Reads ────────────────────────────────────────────────────────────────────
 
 
-def list_documents() -> List[Document]:
-    """All documents, newest first."""
+def list_documents(status: Optional[str] = None) -> List[Document]:
+    """Documents, newest first. `status` filters to "active" / "finalized"."""
     with get_session() as session:
-        return list(session.exec(select(Document).order_by(Document.uploaded_at.desc())))
+        query = select(Document).order_by(Document.uploaded_at.desc())
+        if status:
+            query = query.where(Document.status == status)
+        return list(session.exec(query))
+
+
+def set_document_status(document_id: str, status: str) -> Optional[Document]:
+    """Move a document through its lifecycle. Never touches the file or pages."""
+    from datetime import datetime, timezone
+
+    with get_session() as session:
+        document = session.get(Document, document_id)
+        if document is None:
+            return None
+        document.status = status
+        document.finalized_at = (
+            datetime.now(timezone.utc) if status == "finalized" else None
+        )
+        session.add(document)
+        session.commit()
+        session.refresh(document)
+        return document
 
 
 def get_document(document_id: str) -> Optional[Document]:

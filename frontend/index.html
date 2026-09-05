@@ -74,7 +74,7 @@ tailwind.config = {
 
 <!-- ── Build banner ───────────────────────────────────────── -->
 <div class="bg-ink text-white text-[12.5px] py-2 px-5 text-center font-mono tracking-wide">
-  Phase 1 · uploading and asking are live · obligation monitoring, alerts and drafting are illustrative
+  Live: upload, ask, AI summary · Sample only: obligation register, alerts, extraction panel, delivery timeline
 </div>
 
 <!-- ── Nav ────────────────────────────────────────────────── -->
@@ -90,6 +90,7 @@ tailwind.config = {
       <a href="#problem" class="hover:text-ink transition-colors">Problem</a>
       <a href="#how" class="hover:text-ink transition-colors">How it works</a>
       <a href="#workspace" class="hover:text-ink transition-colors">Workspace</a>
+      <a href="#progress" class="hover:text-ink transition-colors">In progress</a>
       <a href="#obligations" class="hover:text-ink transition-colors">Obligations</a>
       <a href="#extraction" class="hover:text-ink transition-colors">Extraction</a>
     </nav>
@@ -122,6 +123,9 @@ tailwind.config = {
         <span class="w-2.5 h-2.5 rounded-full bg-[#E1E4E9]"></span>
         <span class="w-2.5 h-2.5 rounded-full bg-[#E1E4E9]"></span>
         <span class="ml-3 font-mono text-[11px] text-faint">provision.app / obligations</span>
+        <!-- Honesty label: this whole card is a mockup of a future screen. Every
+             figure and vendor in it is invented. Do not style it to look live. -->
+        <span class="ml-auto font-mono text-[10px] text-warn border border-warn/30 bg-warn/5 rounded px-1.5 py-0.5">SAMPLE</span>
       </div>
       <div class="p-5">
         <div class="flex items-baseline justify-between">
@@ -168,7 +172,7 @@ tailwind.config = {
             <span class="font-mono text-[11px] text-faint shrink-0">Q3</span>
           </div>
         </div>
-        <p class="mt-4 font-mono text-[10.5px] text-faint text-right">Illustrative — monitoring is not in this build</p>
+        <p class="mt-4 font-mono text-[10.5px] text-faint text-right">Sample screen · fictional vendors and figures · monitoring is not in this build</p>
       </div>
     </div>
   </div>
@@ -179,7 +183,8 @@ tailwind.config = {
   <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
     <p class="eyebrow mb-4">The problem</p>
     <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[20ch] leading-[1.12]">One contract, tracked the way it is today.</h2>
-    <p class="mt-4 text-[16.5px] text-muted max-w-[58ch] leading-[1.6]">A real sequence. Nothing goes wrong procedurally — the file is stored correctly, the team does its job. The money is still lost.</p>
+    <p class="mt-4 text-[16.5px] text-muted max-w-[58ch] leading-[1.6]">A representative sequence. Nothing goes wrong procedurally — the file is stored correctly, the team does its job. The money is still lost.</p>
+    <p class="mt-3 font-mono text-[11px] text-faint">Illustrative scenario · not drawn from your documents</p>
 
     <div class="mt-12 grid md:grid-cols-5 gap-px bg-line border border-line rounded-xl overflow-hidden">
       <div class="bg-white p-5">
@@ -286,6 +291,37 @@ tailwind.config = {
     <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[24ch] leading-[1.12]">Ask the contract instead of reopening it.</h2>
     <p class="mt-4 text-[16.5px] text-muted max-w-[58ch] leading-[1.6]">Add your own PDFs and Word documents, then ask. Every answer is drawn only from what you've uploaded — if the documents don't cover it, it says so.</p>
 
+    <!-- ── Auto-summary panel (added in Phase 1.5) ─────────────────────────
+         LLM-generated summaries of one document, produced by the same /api/ask
+         engine the chat uses. NOT verified structured obligation data — that is
+         separate, later work. The caption below says so to the user; keep it. -->
+    <section id="summaryPanel" class="mt-10 hidden">
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div class="flex flex-wrap items-center gap-3">
+            <p class="eyebrow">Document summary</p>
+            <span id="summaryDocName" class="font-mono text-[11px] text-accent"></span>
+          </div>
+          <p class="mt-2 text-[13px] text-faint leading-[1.55] max-w-[62ch]">
+            AI summary — generated from this document's text, not verified obligation data. Check each answer against the clause it cites.
+          </p>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <span id="summaryProgress" class="font-mono text-[11px] text-faint"></span>
+          <button id="summaryRefresh" type="button"
+            class="text-[13px] font-medium border border-line bg-white px-3 py-1.5 rounded-md hover:border-ink transition-colors disabled:opacity-40 disabled:hover:border-line">
+            Refresh summary
+          </button>
+        </div>
+      </div>
+
+      <p id="summaryIdle" class="mt-5 border border-dashed border-line rounded-xl px-5 py-6 text-[13.5px] text-muted leading-[1.6]">
+        Six preset questions are ready to run against this document — key dates, penalties, discounts, renewal terms, ongoing obligations and anything unusual. Choose <span class="font-medium text-ink">Refresh summary</span> to generate them.
+      </p>
+
+      <div id="summaryCards" class="mt-5 grid md:grid-cols-2 gap-4"></div>
+    </section>
+
     <div class="mt-10 border border-line rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(20,24,31,.04),0_12px_32px_-16px_rgba(20,24,31,.12)]">
       <div class="grid lg:grid-cols-[268px_1fr]">
 
@@ -314,7 +350,22 @@ tailwind.config = {
         <div class="flex flex-col min-h-[520px]">
           <div class="px-5 h-12 border-b border-line flex items-center justify-between gap-3">
             <p class="text-[13.5px] font-medium">Workspace assistant</p>
-            <p class="font-mono text-[11px] text-faint truncate" id="scopeLabel">No documents indexed</p>
+            <div class="flex items-center gap-3 min-w-0">
+              <p class="font-mono text-[11px] text-faint truncate" id="scopeLabel">No documents indexed</p>
+              <button id="finalizeButton" type="button"
+                class="hidden shrink-0 text-[12.5px] font-medium border border-line bg-white px-3 py-1.5 rounded-md hover:border-ink transition-colors disabled:opacity-40">
+                Finalize &amp; sign
+              </button>
+            </div>
+          </div>
+
+          <!-- Shown when chat is answering about one specific contract, including
+               a finalized one reopened from the progress timeline. -->
+          <div id="chatScopeBanner" class="hidden px-5 py-2.5 border-b border-line bg-surface flex items-center justify-between gap-3">
+            <p class="text-[12.5px] text-muted min-w-0 truncate">
+              Answering about <span id="chatScopeName" class="font-medium text-ink"></span>
+            </p>
+            <button id="chatScopeClear" type="button" class="shrink-0 font-mono text-[11px] text-accent hover:underline">Clear</button>
           </div>
 
           <div id="chatLog" class="flex-1 overflow-y-auto px-5 py-5 space-y-4 max-h-[440px]"></div>
@@ -333,6 +384,32 @@ tailwind.config = {
   </div>
 </section>
 
+<!-- ── 5. Contracts in progress — SIMULATION ──────────────────
+     Added in Phase 1.6. One card per REAL uploaded document, but every stage
+     is advanced by hand with the demo controls. There is no carrier feed, no
+     ERP connection and no background monitoring behind this section, and the
+     drafted email is never sent. Labelled accordingly in the UI. -->
+<section id="progress" class="border-b border-line">
+  <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
+    <div class="flex flex-wrap items-center gap-3 mb-4">
+      <p class="eyebrow">Contracts in progress</p>
+      <span class="font-mono text-[10.5px] text-warn border border-warn/30 bg-warn/5 rounded px-1.5 py-0.5">Simulation · advanced by hand, not live tracking</span>
+    </div>
+    <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[26ch] leading-[1.12]">Where each agreement has got to, without asking.</h2>
+    <p class="mt-4 text-[16.5px] text-muted max-w-[64ch] leading-[1.6]">
+      A preview of monitoring. The cards below are your real uploaded documents, but the delivery stages are moved by hand using the demo controls — Provision is not connected to any carrier, ERP or delivery feed, and nothing here is being watched in the background.
+    </p>
+    <p class="mt-3 font-mono text-[11px] text-faint">Stage state resets on page reload · nothing is stored</p>
+
+    <div id="timelineEmpty" class="mt-8 border border-dashed border-line rounded-xl px-5 py-6">
+      <p class="text-[14px] font-medium">No documents to track yet.</p>
+      <p class="mt-1.5 text-[13.5px] text-muted leading-[1.6]">Upload a contract in the workspace above and it will appear here with a timeline you can step through.</p>
+    </div>
+
+    <div id="timelineCards" class="mt-8 space-y-4"></div>
+  </div>
+</section>
+
 <!-- ── 5. Obligation dashboard ────────────────────────────── -->
 <section id="obligations" class="border-b border-line bg-surface">
   <div class="max-w-shell mx-auto px-5 py-20 md:py-28">
@@ -342,7 +419,19 @@ tailwind.config = {
     </div>
     <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[26ch] leading-[1.12]">Every commitment in one register, not twelve PDFs.</h2>
 
-    <div class="mt-10 bg-white border border-line rounded-xl overflow-hidden">
+    <!-- Honest empty state. This container should one day hold obligations
+         extracted from the user's own documents; until extraction exists it
+         says so, and the table below stays visible only as a sample. -->
+    <div id="obligationEmpty" class="mt-8 border border-dashed border-line rounded-xl px-5 py-5 bg-white">
+      <p class="text-[14px] font-medium">No obligations extracted from your documents yet.</p>
+      <p class="mt-1.5 text-[13.5px] text-muted leading-[1.6]">
+        Structured extraction — turning each clause into a typed record with a trigger, value, party and date — is a later phase.
+        <span id="obligationEmptyCount"></span>
+      </p>
+    </div>
+
+    <p class="mt-6 eyebrow">Sample of what the register will show</p>
+    <div class="mt-3 bg-white border border-line rounded-xl overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-[13.5px] min-w-[880px]">
           <thead>
@@ -359,7 +448,7 @@ tailwind.config = {
         </table>
       </div>
     </div>
-    <p class="mt-4 font-mono text-[11.5px] text-faint">Sample rows · extraction lands in the next phase</p>
+    <p class="mt-4 font-mono text-[11.5px] text-faint">Every row above is invented, including the vendor names · extraction lands in a later phase</p>
   </div>
 </section>
 
@@ -373,7 +462,17 @@ tailwind.config = {
     <h2 class="text-[30px] md:text-[38px] font-semibold h-tight max-w-[24ch] leading-[1.12]">Told before the window closes, not after.</h2>
     <p class="mt-4 text-[16.5px] text-muted max-w-[58ch] leading-[1.6]">Delivered by email, Slack or WhatsApp. Each one carries the clause it came from and the action it needs.</p>
 
-    <div class="mt-10 grid md:grid-cols-2 gap-4">
+    <!-- Honest empty state: no alert in this build is generated from real data. -->
+    <div id="alertsEmpty" class="mt-8 border border-dashed border-line rounded-xl px-5 py-5">
+      <p class="text-[14px] font-medium">No alerts are being monitored.</p>
+      <p class="mt-1.5 text-[13.5px] text-muted leading-[1.6]">
+        Alerting needs extracted obligations and delivery data, neither of which this build has. Nothing here is watching your documents, and no notification will be sent.
+        <span id="alertsEmptyCount"></span>
+      </p>
+    </div>
+
+    <p class="mt-6 eyebrow">Sample of what an alert will look like</p>
+    <div class="mt-3 grid md:grid-cols-2 gap-4">
       <div class="border border-line rounded-xl p-5 flex gap-4">
         <span class="w-2 h-2 rounded-full bg-bad mt-2 shrink-0"></span>
         <div class="flex-1">
@@ -381,6 +480,7 @@ tailwind.config = {
           <p class="mt-1.5 text-[14px] text-muted leading-[1.6]">Shipment 43 was due 19 July. At 5 business days late, a 2% invoice credit becomes claimable — $1,684 on this shipment.</p>
           <div class="mt-3 flex flex-wrap items-center gap-2">
             <span class="font-mono text-[11px] text-faint border border-line rounded px-2 py-1">Clause 7.3 · p.18</span>
+            <span class="font-mono text-[10px] text-warn border border-warn/30 bg-warn/5 rounded px-1.5 py-0.5">sample</span>
             <span class="text-[13px] font-medium text-faint">Draft claim letter</span>
           </div>
         </div>
@@ -392,6 +492,7 @@ tailwind.config = {
           <p class="mt-1.5 text-[14px] text-muted leading-[1.6]">Vertex IT renews automatically for 12 months unless written notice is given by 2 November. After that the term is locked.</p>
           <div class="mt-3 flex flex-wrap items-center gap-2">
             <span class="font-mono text-[11px] text-faint border border-line rounded px-2 py-1">Clause 12.1 · p.31</span>
+            <span class="font-mono text-[10px] text-warn border border-warn/30 bg-warn/5 rounded px-1.5 py-0.5">sample</span>
             <span class="text-[13px] font-medium text-faint">Draft notice</span>
           </div>
         </div>
@@ -403,6 +504,7 @@ tailwind.config = {
           <p class="mt-1.5 text-[14px] text-muted leading-[1.6]">Q3 volume is 4,380 units. Crossing 5,000 before 30 September applies 4% retroactively to the whole quarter — $9,900 back.</p>
           <div class="mt-3 flex flex-wrap items-center gap-2">
             <span class="font-mono text-[11px] text-faint border border-line rounded px-2 py-1">Annex A · p.9</span>
+            <span class="font-mono text-[10px] text-warn border border-warn/30 bg-warn/5 rounded px-1.5 py-0.5">sample</span>
             <span class="text-[13px] font-medium text-faint">Notify procurement</span>
           </div>
         </div>
@@ -414,6 +516,7 @@ tailwind.config = {
           <p class="mt-1.5 text-[14px] text-muted leading-[1.6]">Northbridge must keep $2M cargo cover for the term. The certificate on file lapses 12 August — request a renewed copy.</p>
           <div class="mt-3 flex flex-wrap items-center gap-2">
             <span class="font-mono text-[11px] text-faint border border-line rounded px-2 py-1">Clause 9.4 · p.7</span>
+            <span class="font-mono text-[10px] text-warn border border-warn/30 bg-warn/5 rounded px-1.5 py-0.5">sample</span>
             <span class="text-[13px] font-medium text-faint">Request document</span>
           </div>
         </div>
@@ -436,9 +539,13 @@ tailwind.config = {
 
       <!-- page mockup -->
       <div class="bg-white border border-line rounded-xl overflow-hidden">
-        <div class="flex items-center justify-between px-5 h-11 border-b border-line bg-white">
-          <p class="font-mono text-[11.5px] text-muted">Supplier Agreement — Acme Logistics.pdf</p>
-          <p class="font-mono text-[11.5px] text-faint">Page 18 of 34</p>
+        <div class="flex items-center justify-between gap-3 px-5 h-11 border-b border-line bg-white">
+          <p class="font-mono text-[11.5px] text-muted truncate">Supplier Agreement — Acme Logistics.pdf</p>
+          <div class="flex items-center gap-2 shrink-0">
+            <p class="font-mono text-[11.5px] text-faint">Page 18 of 34</p>
+            <!-- Invented document. Not one of the user's uploads. -->
+            <span class="font-mono text-[10px] text-warn border border-warn/30 bg-warn/5 rounded px-1.5 py-0.5">SAMPLE</span>
+          </div>
         </div>
         <div class="p-7 md:p-9 text-[13.5px] leading-[1.95] text-ink/90">
           <p class="font-mono text-[11.5px] tracking-wider text-faint mb-4">7. DELIVERY AND PERFORMANCE</p>
@@ -454,7 +561,8 @@ tailwind.config = {
       <div class="bg-white border border-line rounded-xl">
         <div class="flex items-center justify-between px-5 h-11 border-b border-line">
           <p class="text-[13.5px] font-medium">Extracted obligation</p>
-          <span class="font-mono text-[11px] text-ok border border-ok/25 bg-ok/5 rounded px-2 py-0.5">97% confidence</span>
+          <!-- A fictional score. This build produces no confidence numbers. -->
+          <span class="font-mono text-[11px] text-faint border border-line rounded px-2 py-0.5">sample · 97% confidence</span>
         </div>
         <dl class="divide-y divide-line">
           <div class="px-5 py-3.5 grid grid-cols-[104px_1fr] gap-3 items-baseline">
@@ -573,6 +681,7 @@ tailwind.config = {
     </div>
     <div class="fade-line mt-10 mb-5"></div>
     <p class="font-mono text-[11.5px] text-faint">Not a legal service · answers are drawn from your uploaded documents and should be checked against the clause cited</p>
+    <p class="font-mono text-[11.5px] text-faint mt-1.5">Anything marked <span class="text-warn">sample</span> is invented — including Acme Logistics, Vertex IT and Northbridge, which are not real companies and are not in your workspace</p>
   </div>
 </footer>
 
@@ -591,7 +700,10 @@ const state = {
   documents: [],
   selected: new Set(),   // empty = every document is searched
   busy: false,
-  uploading: false
+  uploading: false,
+  // Set when chat is pinned to one contract — including a finalized one
+  // reopened from the progress timeline, which is no longer in the rail.
+  scopedDocument: null
 };
 
 const el = {
@@ -607,7 +719,11 @@ const el = {
   form:        document.getElementById('chatForm'),
   input:       document.getElementById('chatInput'),
   askButton:   document.getElementById('askButton'),
-  suggestions: document.getElementById('suggestions')
+  suggestions: document.getElementById('suggestions'),
+  finalize:    document.getElementById('finalizeButton'),
+  scopeBanner: document.getElementById('chatScopeBanner'),
+  scopeName:   document.getElementById('chatScopeName'),
+  scopeClear:  document.getElementById('chatScopeClear')
 };
 
 function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -634,7 +750,9 @@ const FILE_ICON = `<svg class="mt-0.5 shrink-0" width="14" height="14" viewBox="
 
 async function loadDocuments(){
   try {
-    const response = await fetch(API.documents);
+    // Active only: finalizing a contract moves it out of the workspace and
+    // into the progress timeline. It is not deleted — see /api/documents.
+    const response = await fetch(API.documents + '?status=active');
     if (!response.ok) throw new Error(await errorFrom(response));
     state.documents = await response.json();
   } catch (err) {
@@ -678,9 +796,16 @@ function renderDocuments(){
 
   renderScope();
   renderSuggestions();
+  // Added in Phase 1.5: let the summary panel retarget when the document set
+  // or the rail selection changes. Guarded — never breaks the rail if absent.
+  if (typeof onDocumentsRendered === 'function') onDocumentsRendered();
+  // Added in Phase 1.6: the simulated progress timeline follows the same
+  // document set. Guarded, so the rail is unaffected if the script is absent.
+  if (typeof onDocumentsRenderedTimeline === 'function') onDocumentsRenderedTimeline();
 }
 
 function renderScope(){
+  renderChatScope();
   const total = state.documents.length;
   if (!total) { el.scopeLabel.textContent = 'No documents indexed'; return; }
   if (state.selected.size === 0) {
@@ -749,6 +874,9 @@ async function uploadFiles(fileList){
     const added = (body.documents || []).length;
     if (added) showUploadNote(`Added ${added} document${added === 1 ? '' : 's'}.`, false);
     await loadDocuments();
+    // Added in Phase 1.5: kick off the auto-summary for what was just uploaded.
+    // Guarded so the chat keeps working even if the summary script is absent.
+    if (typeof onUploadComplete === 'function') onUploadComplete(body.documents || []);
   } catch (err) {
     showUploadNote(err.message || 'Upload failed.', true);
   } finally {
@@ -765,6 +893,85 @@ el.fileInput.addEventListener('change', event => uploadFiles(event.target.files)
 ['dragleave','drop'].forEach(type =>
   el.dropzone.addEventListener(type, event => { event.preventDefault(); el.dropzone.classList.remove('is-over'); }));
 el.dropzone.addEventListener('drop', event => uploadFiles(event.dataTransfer.files));
+
+/* ── Contract lifecycle: scope, finalize, reopen ── */
+
+/* Which contract chat is currently answering about, and whether the finalize
+   action applies. A contract is "the current one" when it has been opened from
+   the timeline, when exactly one rail document is selected, or when only one
+   document is in the workspace at all. */
+function currentContract(){
+  if (state.scopedDocument) return state.scopedDocument;
+  if (state.selected.size === 1) {
+    const id = Array.from(state.selected)[0];
+    return state.documents.find(d => d.id === id) || null;
+  }
+  if (state.documents.length === 1) return state.documents[0];
+  return null;
+}
+
+function renderChatScope(){
+  const scoped = state.scopedDocument;
+  el.scopeBanner.classList.toggle('hidden', !scoped);
+  if (scoped) el.scopeName.textContent = scoped.filename;
+
+  // Finalizing only makes sense for a document still in the workspace.
+  const contract = currentContract();
+  const finalizable = Boolean(contract) && (contract.status || 'active') === 'active';
+  el.finalize.classList.toggle('hidden', !finalizable);
+  el.finalize.disabled = !finalizable || state.busy;
+}
+
+/* Reopen chat against a stored contract. Called from the timeline's
+   "Ask about this contract" button; the document stays exactly where it is in
+   SQLite, we simply point the question at it. */
+function openChatForDocument(document_){
+  if (!document_) return;
+  state.scopedDocument = { id: document_.id, filename: document_.filename, status: document_.status };
+  state.selected.clear();
+  renderDocuments();
+  noticeBubble(`Now answering about ${document_.filename}. Ask anything about this contract — it is still stored in full.`);
+  document.getElementById('workspace').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  el.input.focus();
+}
+
+el.scopeClear.addEventListener('click', () => {
+  state.scopedDocument = null;
+  renderDocuments();
+});
+
+/* Finalize: mark the contract signed, move it to the progress timeline, and
+   clear the workspace for the next document. The document itself is NOT
+   deleted — /api/documents/{id}/finalize only flips a status column, so the
+   contract stays fully answerable from its timeline card. */
+async function finalizeCurrentContract(){
+  const contract = currentContract();
+  if (!contract || state.busy) return;
+  if (!confirm(`Mark ${contract.filename} as signed?
+
+It moves to "Contracts in progress" and the workspace clears. The document is kept and stays answerable.`)) return;
+
+  el.finalize.disabled = true;
+  try {
+    const response = await fetch(`${API.documents}/${encodeURIComponent(contract.id)}/finalize`, { method: 'POST' });
+    if (!response.ok) throw new Error(await errorFrom(response));
+
+    // Clear the workspace: chat history, scope and rail selection.
+    state.scopedDocument = null;
+    state.selected.clear();
+    el.log.innerHTML = '';
+    el.input.value = '';
+
+    await loadDocuments();
+    noticeBubble(`${contract.filename} is signed and now tracked under Contracts in progress. The workspace is clear for the next document — the contract is still stored and you can reopen chat on it from its card.`);
+  } catch (err) {
+    noticeBubble(err.message || 'Could not finalize that contract.', 'error');
+  } finally {
+    renderChatScope();
+  }
+}
+
+el.finalize.addEventListener('click', finalizeCurrentContract);
 
 /* ── Chat ── */
 
@@ -862,7 +1069,11 @@ async function ask(question){
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         question,
-        document_ids: state.selected.size ? Array.from(state.selected) : null
+        // Explicit scope (a contract opened from the timeline) wins; then the
+        // rail selection; otherwise every document in the workspace.
+        document_ids: state.scopedDocument
+          ? [state.scopedDocument.id]
+          : (state.selected.size ? Array.from(state.selected) : null)
       })
     });
     typing.remove();
@@ -955,7 +1166,10 @@ document.getElementById('obligationRows').innerHTML = OBLIGATIONS.map(o => `
     </td>
     <td class="px-5 py-3.5 font-mono text-[12.5px] text-muted">${o.due}</td>
     <td class="px-5 py-3.5 text-muted">${o.prio}</td>
-    <td class="px-5 py-3.5 font-mono text-[12px] text-accent">${o.src}</td>
+    <td class="px-5 py-3.5 font-mono text-[12px]">
+      <span class="text-faint">${o.src}</span>
+      <span class="ml-2 text-[10px] text-warn border border-warn/30 bg-warn/5 rounded px-1.5 py-0.5">sample</span>
+    </td>
   </tr>`).join('');
 
 document.getElementById('integrationGrid').innerHTML = INTEGRATIONS.map(name => `
@@ -964,5 +1178,17 @@ document.getElementById('integrationGrid').innerHTML = INTEGRATIONS.map(name => 
     <span class="font-mono text-[10.5px] text-faint border border-line rounded px-1.5 py-0.5">Planned</span>
   </div>`).join('');
 </script>
+
+<!-- Auto-summary panel (Phase 1.5). Loaded after the chat script so it can
+     reuse esc(), renderBody(), renderCitations() and errorFrom(). -->
+<script src="summary-panel.js"></script>
+
+<!-- Hardcoded demo backdrop for the progress timeline. ALL seeded contract
+     data lives in this one file; empty it or drop this tag to remove them. -->
+<script src="demo-seed.js"></script>
+
+<!-- Contracts-in-progress timeline. Loaded last; reuses esc() from the chat
+     script. Stage state is in memory and nothing is ever sent. -->
+<script src="timeline-panel.js"></script>
 </body>
 </html>

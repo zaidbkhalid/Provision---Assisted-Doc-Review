@@ -41,6 +41,12 @@ class Document(SQLModel, table=True):
     page_count: int = 0
     char_count: int = 0
     uploaded_at: datetime = Field(default_factory=_utcnow)
+    # Lifecycle, added in Phase 1.7. "active" = still being reviewed in the
+    # workspace; "finalized" = signed off and moved to the progress timeline.
+    # Finalizing never deletes anything: the file and its pages stay in place so
+    # the contract can still be questioned later.
+    status: str = Field(default="active", index=True)
+    finalized_at: Optional[datetime] = None
 
 
 class Page(SQLModel, table=True):
@@ -67,6 +73,8 @@ class DocumentOut(BaseModel):
     page_count: int
     char_count: int
     uploaded_at: datetime
+    status: str = "active"
+    finalized_at: Optional[datetime] = None
 
     @classmethod
     def from_document(cls, doc: Document) -> "DocumentOut":
@@ -78,6 +86,8 @@ class DocumentOut(BaseModel):
             page_count=doc.page_count,
             char_count=doc.char_count,
             uploaded_at=doc.uploaded_at,
+            status=doc.status or "active",
+            finalized_at=doc.finalized_at,
         )
 
 
@@ -129,3 +139,46 @@ class AskResponse(BaseModel):
 class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None
+
+
+# ── Auto-summary panel ───────────────────────────────────────────────────────
+# Added in Phase 1.5. These describe LLM-generated summary cards, NOT verified
+# structured obligations — see backend/summary.py for that distinction. The
+# existing Ask schemas above are untouched and remain the chat contract.
+
+
+class SummaryQuestionOut(BaseModel):
+    """One preset question, for a UI that wants to render headings first."""
+
+    key: str
+    heading: str
+    question: str
+
+
+class SummaryCardRequest(BaseModel):
+    document_id: str
+    key: str  # which preset question, from SUMMARY_QUESTIONS
+
+
+class SummaryRequest(BaseModel):
+    document_id: str
+
+
+class SummaryCard(BaseModel):
+    """One answered preset question. Same citation type as a chat answer."""
+
+    key: str
+    heading: str
+    question: str
+    answer: Optional[str] = None
+    answered: bool = True  # False when the document doesn't cover this topic
+    citations: List[Citation] = PydanticField(default_factory=list)
+    scope_note: Optional[str] = None
+    error: Optional[str] = None  # set when this one card failed
+
+
+class SummaryResponse(BaseModel):
+    document_id: str
+    document: str
+    cards: List[SummaryCard] = PydanticField(default_factory=list)
+    disclaimer: str

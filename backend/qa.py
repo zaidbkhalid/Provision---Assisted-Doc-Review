@@ -5,11 +5,14 @@ to put in the model's context whole, and doing so keeps cross-references intact
 — clause 7.3 is meaningless without the cap in 7.4 and the schedule six pages
 earlier, and chunk retrieval routinely returns one without the others.
 
+Calls go to Groq via its OpenAI-compatible endpoint, using the official `openai`
+SDK pointed at GROQ_BASE_URL.
+
 The request is built as: stable instructions -> the full document text (one
-input block) -> the question, last. OpenAI caches long prompt prefixes
-automatically, so keeping the document text ahead of the volatile question, and
-passing a cache key derived from the document set, means repeated questions
-over the same documents reuse the cached prefix.
+input block) -> the question, last. Groq's automatic prefix caching needs
+exactly that shape. Measured, the cache hits intermittently on this key (0% on
+most repeats, 89% on one), so the layout earns a discount when it lands but is
+not something to budget for. See config.py for the numbers.
 """
 
 from __future__ import annotations
@@ -25,14 +28,24 @@ from pydantic import BaseModel
 from . import store
 from .config import (
     ANSWER_MAX_TOKENS,
+    GROQ_API_KEY,
+    GROQ_BASE_URL,
+    GROQ_MODEL,
+    GROQ_REASONING_EFFORT,
     MAX_CONTEXT_CHARS,
     OPENAI_API_KEY,
+    OPENAI_BASE_URL,
     OPENAI_MODEL,
-    OPENAI_REASONING_EFFORT,
+    OPENAI_SUMMARY_MODEL,
+    configured_providers,
 )
 from .models import AskResponse, Citation, Document
 
 logger = logging.getLogger("provision.qa")
+
+# Ids of answers that hit the output ceiling, so answer_question can attach a
+# warning without changing _call_model's return type.
+_TRUNCATED: set[int] = set()
 
 
 class QAError(Exception):
@@ -73,11 +86,19 @@ correct answer; a plausible guess is a failure.
 elsewhere in them, say so and cite both places.
 6. Quote the exact wording when the precise phrasing carries the obligation.
 
-Style: precise and businesslike, like a briefing note. No greetings, no \
-hedging filler, no restating the question. Two or three short paragraphs at \
-most; use a short list when the answer is genuinely a list. Give the answer \
-first, then the qualifying detail (caps, conditions, notice periods) that \
-changes what it means in practice."""
+Style — short and exact:
+- The first sentence is the direct answer. Put nothing in front of it: no greeting, no restating the question, no describing what the document is.
+- After it, give only what changes whether or how that answer applies: conditions, thresholds, caps, notice periods, deadlines, exceptions. Then stop.
+- No background, no general explanation the question did not ask for, no advice on what to do next, no closing summary.
+- Use a short list only when the answer is genuinely several items.
+- Write the answer as clean prose with NO citation strings inside it. Do not append references like "(agreement.docx, p. 2, cl. 7.3)" or "[p.4]" to sentences, and do not add a sources line at the end. Naming a clause as part of the sentence is fine when the sentence is about that clause ("the cap in clause 7.4 applies"); a parenthetical reference tacked on to show your working is not. Every citation belongs in the separate citations field, which is rendered under the answer for the user — putting it in both places just repeats it.
+- Brevity never outranks accuracy. A qualifier is part of the answer, not detail to trim: "a 2% credit" without "if the delivery is more than five business days late, capped at 10% of quarterly invoice value" is a wrong answer, not a concise one. Where the document leaves out something the answer depends on, say so in one clause rather than dropping it.
+
+Example of the required shape:
+Q: "What do we get if a delivery is late?"
+A: "A credit of 2% of the affected consignment's invoice value, where delivery is more than five business days beyond the scheduled date, capped at 10% of aggregate invoice value in any calendar quarter. The claim must be made in writing within 30 days of receipt."
+(Note the absence of any bracketed document or page reference in that answer text — the citations travel in the citations field instead.)
+"""
 
 
 # ── The shape we require back from the model ─────────────────────────────────
@@ -101,15 +122,24 @@ class _ModelAnswer(BaseModel):
 # ── Public entry point ───────────────────────────────────────────────────────
 
 
-def answer_question(question: str, document_ids: Optional[Sequence[str]] = None) -> AskResponse:
-    """Answer `question` strictly from the selected (or all) documents."""
+def answer_question(
+    question: str,
+    document_ids: Optional[Sequence[str]] = None,
+    model: Optional[str] = None,
+) -> AskResponse:
+    """Answer `question` strictly from the selected (or all) documents.
+
+    `model` overrides the chat model for this one call. The auto-summary passes
+    the cheaper GROQ_SUMMARY_MODEL through it; everything else leaves it None and
+    gets GROQ_MODEL. Retrieval, prompt and verification are identical either way.
+    """
     question = (question or "").strip()
     if not question:
         raise InvalidQuestion("Please enter a question.")
-    if not OPENAI_API_KEY:
+    if not configured_providers():
         raise MissingApiKey(
-            "No OpenAI API key is configured. Add OPENAI_API_KEY to the .env "
-            "file in the project root and restart the server."
+            "No LLM API key is configured. Add OPENAI_API_KEY (recommended) or "
+            "GROQ_API_KEY to the .env file in the project root and restart."
         )
 
     documents = _select_documents(document_ids)
@@ -124,33 +154,63 @@ def answer_question(question: str, document_ids: Optional[Sequence[str]] = None)
     context = _build_context(documents)
 
     try:
-        parsed = _call_model(context, question, documents)
+        parsed = _call_model(context, question, documents, model)
     except openai.AuthenticationError as exc:
-        raise QAError("The OpenAI API key was rejected. Check OPENAI_API_KEY in .env.") from exc
+        raise QAError(
+            "The LLM API key was rejected. Check OPENAI_API_KEY / GROQ_API_KEY in .env."
+        ) from exc
     except openai.PermissionDeniedError as exc:
         raise QAError(
-            f"This API key is not allowed to use the model '{OPENAI_MODEL}'. "
-            "Set OPENAI_MODEL in .env to a model the key can reach."
+            "This API key is not allowed to use the configured model. Set "
+            "OPENAI_MODEL or GROQ_MODEL in .env to a model the key can reach."
         ) from exc
     except openai.NotFoundError as exc:
         raise QAError(
-            f"The model '{OPENAI_MODEL}' was not found. Set OPENAI_MODEL in .env "
-            "to a model your account can use."
+            "The configured model was not found. Set OPENAI_MODEL or GROQ_MODEL "
+            "in .env to a model your account can use."
         ) from exc
     except openai.RateLimitError as exc:
+        # Only reached after the client's own retries have been exhausted.
         raise QAError(
-            "The OpenAI API is rate limiting this key, or the account is out of "
-            "quota. Try again shortly."
+            "Every configured provider is rate limited right now. Groq's free "
+            "tier allows 8,000 tokens/minute; adding OPENAI_API_KEY to .env "
+            "gives the chain somewhere to fail over to."
         ) from exc
     except openai.APIStatusError as exc:
-        logger.error("OpenAI API error %s", exc.status_code)
+        logger.error("LLM API error %s", exc.status_code)
+        if exc.status_code == 400 and "json_validate" in str(exc).lower():
+            # Groq rejects a structured response whose JSON was cut off mid-way
+            # rather than returning it truncated. More output room fixes it.
+            raise QAError(
+                "The model's answer was too long to return in full. Ask a "
+                "narrower question, or raise ANSWER_MAX_TOKENS in .env."
+            ) from exc
+        if exc.status_code == 413:
+            # Groq counts prompt + max_output_tokens against the per-minute
+            # token limit before running the call. Either the document is large
+            # or other calls have already consumed this minute's budget.
+            raise QAError(
+                "This request exceeds the provider's per-minute token limit. "
+                "Wait a minute and retry, ask about a single document, or lower "
+                "ANSWER_MAX_TOKENS in .env."
+            ) from exc
         raise QAError(
-            "The OpenAI API returned an error. Try again in a moment."
+            "The LLM provider returned an error. Try again in a moment."
             if exc.status_code >= 500
             else "The question could not be processed by the model."
         ) from exc
     except openai.APIConnectionError as exc:
-        raise QAError("Could not reach the OpenAI API. Check the network connection.") from exc
+        raise QAError(
+            "Could not reach any configured LLM provider. Check the network connection."
+        ) from exc
+
+    if id(parsed) in _TRUNCATED:
+        _TRUNCATED.discard(id(parsed))
+        scope_note = _join_notes(
+            scope_note,
+            "This answer reached the length limit and may be incomplete — treat "
+            "any list in it as partial.",
+        )
 
     citations, unverified = _verify_citations(parsed.citations, documents)
     if unverified and not citations:
@@ -202,13 +262,137 @@ def _cache_key(documents: Sequence[Document]) -> str:
     return f"provision-docs-{digest[:32]}"
 
 
+# ── Providers ────────────────────────────────────────────────────────────────
+# Both providers speak the OpenAI wire format, so one SDK serves both — only the
+# base URL, key and model names differ. The chain is tried in order and a
+# provider that rate-limits or errors hands off to the next, which is what keeps
+# a live demo answering when Groq's 8,000 tokens/minute ceiling is reached.
+
+
+class _Provider:
+    """One LLM endpoint: how to reach it and which models to use."""
+
+    def __init__(self, name, api_key, base_url, chat_model, summary_model, extra=None):
+        self.name = name
+        self.api_key = api_key
+        self.base_url = base_url or None
+        self.chat_model = chat_model
+        self.summary_model = summary_model
+        self.extra = extra or {}  # provider-specific request params
+
+    def model_for(self, requested: Optional[str]) -> str:
+        """Map a requested model onto this provider's equivalent.
+
+        The summary panel asks for the cheap model by name. If we have failed
+        over to a different provider that exact id will not exist there, so the
+        request is translated to that provider's own cheap model rather than
+        404ing.
+        """
+        if not requested:
+            return self.chat_model
+        if requested in (self.chat_model, self.summary_model):
+            return requested
+        # A model id belonging to some other provider: pick the same tier here.
+        if requested in (GROQ_SUMMARY_MODEL_NAME, OPENAI_SUMMARY_MODEL):
+            return self.summary_model
+        return self.chat_model
+
+    def client(self) -> OpenAI:
+        kwargs = dict(api_key=self.api_key, max_retries=3, timeout=120.0)
+        if self.base_url:
+            kwargs["base_url"] = self.base_url
+        return OpenAI(**kwargs)
+
+
+# Imported lazily to avoid a circular import in model_for above.
+from .config import GROQ_SUMMARY_MODEL as GROQ_SUMMARY_MODEL_NAME  # noqa: E402
+
+
+def _build_providers() -> List[_Provider]:
+    """The provider chain, in configured order, skipping any without a key."""
+    catalogue = {
+        "openai": lambda: _Provider(
+            "openai", OPENAI_API_KEY, OPENAI_BASE_URL,
+            OPENAI_MODEL, OPENAI_SUMMARY_MODEL,
+            # Reasoning effort is supported on the GPT-5 family.
+            extra={"reasoning": {"effort": GROQ_REASONING_EFFORT}},
+        ),
+        "groq": lambda: _Provider(
+            "groq", GROQ_API_KEY, GROQ_BASE_URL,
+            GROQ_MODEL, GROQ_SUMMARY_MODEL_NAME,
+            extra={"reasoning": {"effort": GROQ_REASONING_EFFORT}},
+        ),
+    }
+    return [catalogue[name]() for name in configured_providers() if name in catalogue]
+
+
+# Errors worth handing to the next provider rather than surfacing to the user.
+_FAILOVER_STATUSES = {408, 409, 413, 429, 500, 502, 503, 504}
+
+
+def _should_failover(exc: Exception) -> bool:
+    # Rate limits, timeouts and transient server errors: the next provider may
+    # well succeed, so try it.
+    if isinstance(exc, (openai.RateLimitError, openai.APIConnectionError, openai.APITimeoutError)):
+        return True
+    # A rejected key, a missing model or a forbidden model means THIS provider is
+    # misconfigured — not that the question is unanswerable. Fall through rather
+    # than taking the whole app down over one bad entry in .env.
+    if isinstance(exc, (openai.AuthenticationError, openai.NotFoundError, openai.PermissionDeniedError)):
+        return True
+    if isinstance(exc, openai.APIStatusError):
+        return exc.status_code in _FAILOVER_STATUSES
+    return False
+
+
 def _call_model(
-    context: str, question: str, documents: Sequence[Document]
+    context: str,
+    question: str,
+    documents: Sequence[Document],
+    model: Optional[str] = None,
 ) -> _ModelAnswer:
-    client = OpenAI(api_key=OPENAI_API_KEY)
+    """Ask the first available provider; fail over to the next on a rate limit.
+
+    This is what stops a demo dying on Groq's 8,000 tokens/minute ceiling: the
+    question is simply re-asked against the next provider in the chain.
+    """
+    providers = _build_providers()
+    if not providers:
+        raise MissingApiKey(
+            "No LLM API key is configured. Add OPENAI_API_KEY or GROQ_API_KEY "
+            "to the .env file in the project root and restart the server."
+        )
+
+    last_error: Optional[Exception] = None
+    for index, provider in enumerate(providers):
+        try:
+            return _call_provider(provider, context, question, model)
+        except Exception as exc:
+            last_error = exc
+            has_next = index < len(providers) - 1
+            if has_next and _should_failover(exc):
+                logger.warning(
+                    "provider %s failed (%s); falling back to %s",
+                    provider.name, type(exc).__name__, providers[index + 1].name,
+                )
+                continue
+            raise
+
+    raise last_error  # pragma: no cover - loop always returns or raises
+
+
+def _call_provider(
+    provider: "_Provider",
+    context: str,
+    question: str,
+    model: Optional[str] = None,
+) -> _ModelAnswer:
+    """One attempt against one provider."""
+    client = provider.client()
+    chosen_model = provider.model_for(model)
 
     response = client.responses.parse(
-        model=OPENAI_MODEL,
+        model=chosen_model,
         instructions=SYSTEM_PROMPT,
         input=[
             {
@@ -239,8 +423,9 @@ def _call_model(
         ],
         text_format=_ModelAnswer,
         max_output_tokens=ANSWER_MAX_TOKENS,
-        reasoning={"effort": OPENAI_REASONING_EFFORT},
-        prompt_cache_key=_cache_key(documents),
+        # Provider-specific request params (reasoning effort today). No
+        # prompt_cache_key: Groq keys its cache off the prefix bytes itself.
+        **provider.extra,
     )
 
     usage = response.usage
@@ -248,22 +433,34 @@ def _call_model(
         # Useful for confirming the prefix cache is actually being hit; the
         # document text dominates input cost, so a zero here on a repeat
         # question means something upstream of the question changed.
+        # cached_tokens is Groq's own counter. If it stays 0 across repeated
+        # questions on one document, prompt caching is not active for this key.
+        details = getattr(usage, "input_tokens_details", None)
         logger.info(
-            "tokens in=%s (cached %s) out=%s",
+            "provider=%s model=%s tokens in=%s (cached %s) out=%s",
+            provider.name,
+            chosen_model,
             usage.input_tokens,
-            getattr(usage.input_tokens_details, "cached_tokens", 0),
+            getattr(details, "cached_tokens", 0) if details else 0,
             usage.output_tokens,
         )
+
+    parsed = response.output_parsed
 
     if response.status == "incomplete":
         reason = getattr(response.incomplete_details, "reason", None)
         logger.warning("Model response incomplete: %s", reason)
-        raise QAError(
-            "The answer was cut short before it finished. Try a narrower "
-            "question, or scope it to a single document."
-        )
+        if parsed is None:
+            raise QAError(
+                "The answer was cut short before it finished. Try a narrower "
+                "question, or scope it to a single document."
+            )
+        # Hitting the output ceiling mid-answer still often yields valid JSON.
+        # Keeping it beats failing the whole card, but the user must be told it
+        # may be missing items — a silently half-listed set of obligations is
+        # exactly the failure this product exists to prevent.
+        _TRUNCATED.add(id(parsed))
 
-    parsed = response.output_parsed
     if parsed is None:
         # Covers a refusal or any other non-conforming output.
         raise QAError("The model did not return a usable answer. Try rephrasing the question.")

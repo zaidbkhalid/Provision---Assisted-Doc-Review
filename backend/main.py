@@ -4,22 +4,36 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
-from typing import List
+from typing import List, Optional
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import ingest, qa, store
+from . import ingest, qa, store, summary
 from .config import (
     FRONTEND_DIR,
+    GROQ_MODEL,
+    GROQ_SUMMARY_MODEL,
+    configured_providers,
     MAX_UPLOAD_BYTES,
-    OPENAI_MODEL,
+    SUMMARY_AUTO_RUN,
     SUPPORTED_EXTENSIONS,
     llm_configured,
 )
-from .models import AskRequest, AskResponse, DocumentOut, UploadResponse, UploadResult
+from .models import (
+    AskRequest,
+    AskResponse,
+    DocumentOut,
+    SummaryCard,
+    SummaryCardRequest,
+    SummaryQuestionOut,
+    SummaryRequest,
+    SummaryResponse,
+    UploadResponse,
+    UploadResult,
+)
 
 logger = logging.getLogger("provision")
 
@@ -30,7 +44,7 @@ async def lifespan(app: FastAPI):
     if not llm_configured():
         # A warning, not a failure: upload and listing work without a key.
         logger.warning(
-            "OPENAI_API_KEY is not set — document Q&A will return an error "
+            "GROQ_API_KEY is not set — document Q&A will return an error "
             "until it is added to .env."
         )
     yield
@@ -86,9 +100,14 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
 @app.get("/api/health")
 def health() -> dict:
+    providers = configured_providers()
     return {
         "status": "ok",
-        "model": OPENAI_MODEL,
+        # Tried in order; the first with a key answers, the rest are fallbacks.
+        "providers": providers,
+        "provider": providers[0] if providers else None,
+        "model": GROQ_MODEL,  # chat Q&A (Groq path)
+        "summary_model": GROQ_SUMMARY_MODEL,  # auto-summary cards (Groq path)
         "llm_configured": llm_configured(),
     }
 
@@ -146,9 +165,40 @@ async def upload_documents(files: List[UploadFile] = File(...)) -> UploadRespons
 
 
 @app.get("/api/documents", response_model=List[DocumentOut])
-def list_documents() -> List[DocumentOut]:
-    """All uploaded documents with their metadata, newest first."""
-    return [DocumentOut.from_document(document) for document in store.list_documents()]
+def list_documents(status: Optional[str] = None) -> List[DocumentOut]:
+    """Uploaded documents with metadata, newest first.
+
+    `?status=active` or `?status=finalized` filters by lifecycle stage. Omitted,
+    it returns everything, which is the behaviour callers had before the
+    lifecycle existed.
+    """
+    if status and status not in {"active", "finalized"}:
+        raise HTTPException(
+            status_code=400, detail="status must be 'active' or 'finalized'."
+        )
+    return [DocumentOut.from_document(d) for d in store.list_documents(status)]
+
+
+@app.post("/api/documents/{document_id}/finalize", response_model=DocumentOut)
+def finalize_document(document_id: str) -> DocumentOut:
+    """Mark a document as signed and move it into the progress timeline.
+
+    Nothing is deleted: the stored file and its page text stay exactly where
+    they were, so the contract remains fully answerable afterwards.
+    """
+    document = store.set_document_status(document_id, "finalized")
+    if document is None:
+        raise HTTPException(status_code=404, detail="That document no longer exists.")
+    return DocumentOut.from_document(document)
+
+
+@app.post("/api/documents/{document_id}/reopen", response_model=DocumentOut)
+def reopen_document(document_id: str) -> DocumentOut:
+    """Send a finalized document back to the active workspace."""
+    document = store.set_document_status(document_id, "active")
+    if document is None:
+        raise HTTPException(status_code=404, detail="That document no longer exists.")
+    return DocumentOut.from_document(document)
 
 
 @app.delete("/api/documents/{document_id}")
@@ -178,6 +228,57 @@ def ask(request: AskRequest) -> AskResponse:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
+# ── Auto-summary panel ───────────────────────────────────────────────────────
+# Added in Phase 1.5, alongside /api/ask — not in place of it. Every route here
+# runs the same qa.answer_question the chat uses; there is no second engine.
+# These answers are LLM summaries for orientation, not verified obligations.
+
+
+def _summary_http_error(exc: qa.QAError) -> HTTPException:
+    """Map a Q&A failure onto the same status codes /api/ask already uses."""
+    if isinstance(exc, qa.MissingApiKey):
+        return HTTPException(status_code=503, detail=str(exc))
+    if isinstance(exc, (qa.NoDocuments, qa.InvalidQuestion, summary.UnknownSummaryQuestion)):
+        return HTTPException(status_code=400, detail=str(exc))
+    return HTTPException(status_code=502, detail=str(exc))
+
+
+@app.get("/api/summary/questions", response_model=List[SummaryQuestionOut])
+def summary_questions() -> List[SummaryQuestionOut]:
+    """The preset question list, so the UI can render headings before answers."""
+    return [
+        SummaryQuestionOut(key=item.key, heading=item.heading, question=item.question)
+        for item in summary.SUMMARY_QUESTIONS
+    ]
+
+
+@app.post("/api/summary/card", response_model=SummaryCard)
+def summary_card(request: SummaryCardRequest) -> SummaryCard:
+    """Answer one preset question about one document.
+
+    One card per request so the panel can fill in progressively instead of
+    blocking on all six.
+    """
+    try:
+        return summary.answer_card(request.document_id, request.key)
+    except qa.QAError as exc:
+        raise _summary_http_error(exc) from exc
+
+
+@app.post("/api/summary", response_model=SummaryResponse)
+def summarise(request: SummaryRequest) -> SummaryResponse:
+    """Every preset question for one document, in one call.
+
+    Convenience for scripts and testing; the UI uses /api/summary/card so it can
+    show progress. Individual card failures come back on the card, not as a
+    request-level error.
+    """
+    try:
+        return summary.summarise_document(request.document_id)
+    except qa.QAError as exc:
+        raise _summary_http_error(exc) from exc
+
+
 # ── Limits, for the UI ───────────────────────────────────────────────────────
 
 
@@ -188,6 +289,9 @@ def client_config() -> dict:
         "supported_extensions": sorted(SUPPORTED_EXTENSIONS),
         "max_upload_bytes": MAX_UPLOAD_BYTES,
         "llm_configured": llm_configured(),
+        # When false the panel waits for the user to press "Generate summary"
+        # instead of firing six calls the moment a document is uploaded.
+        "summary_auto_run": SUMMARY_AUTO_RUN,
     }
 
 
